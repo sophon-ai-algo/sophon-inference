@@ -1,0 +1,53 @@
+stages:
+  - build
+  - test
+
+release_test:
+  image:
+   name: "bmnnsdk2-bm1684/dev:2.0.0"
+  stage: build
+  script:
+  - pwd
+  - cd /builds/ai-algorithm/sophon-inference
+  - bash ./tools/release_bm1684.sh
+  - bash ./tools/release_bm1684.sh soc
+  - bash ./tools/ci_test/prepare_soc_test.sh
+  tags:
+  - release_test
+
+pcie_test:
+  image:
+   name: "ubuntu:v5"
+  stage: test
+  script:
+  - cd /workspace/nntoolchain/scripts
+  - source envsetup_pcie.sh bmnetu
+  - cd /builds/ai-algorithm/sophon-inference
+  - mkdir -p build
+  - cd build
+  - cmake ..
+  - make -j
+  - cd /builds/ai-algorithm/sophon-inference/python
+  - source setup_dev_python_path.sh
+  - cd /builds/ai-algorithm/sophon-inference
+  - /bin/bash ./tools/ci_test/test_all_pcie.sh /workspace/data
+  tags:
+  - pcie_test
+
+soc_test:
+  image:
+  stage: test
+  variables:
+    GIT_STRATEGY: none
+  script:
+  - sudo rm -rf /data/gitlab_runner/sophon-inference
+  - scp -r hong.liu@10.30.34.184:/data/gitlab_runner/sophon-inference_soc_release /data/gitlab_runner/sophon-inference
+  - sudo mv /system/lib/libsail.so /system/lib/libsail.so.bak
+  - sudo cp /data/gitlab_runner/sophon-inference/cpp/lib/libsail.so /system/lib/
+  - sudo rm -rf /system/lib/sophon.bak
+  - sudo mv /system/lib/sophon /system/lib/sophon.bak
+  - sudo cp -r /data/gitlab_runner/sophon-inference/python3/sophon /system/lib/
+  - cd /data/gitlab_runner/sophon-inference
+  - sudo bash ./test_all_soc.sh /data/gitlab_runner/data
+  tags:
+  - soc_test

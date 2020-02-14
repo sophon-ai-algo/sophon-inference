@@ -1,0 +1,10 @@
+{
+  "arch": {
+    "context_path": "mobilenetssd_ir/compilation.bmodel",
+    "is_dynamic": false,
+    "tpus": "0",
+    "input_names": ["data"],
+    "output_names": ["mbox_conf_flatten", "mbox_loc", "mbox_priorbox"],
+    "input_shapes": [[1, 3, 300, 300]]
+  }
+}

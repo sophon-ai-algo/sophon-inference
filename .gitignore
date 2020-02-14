@@ -1,0 +1,15 @@
+build/
+docs/build/
+sophon.egg-info/
+dist/
+*.pyc
+*.py[cod]
+python/sail.cpython-35m-x86_64-linux-gnu.so
+python/sophon/sail.cpython-35m-x86_64-linux-gnu.so
+__pycache__/
+tests/data/
+*.swp
+*.so
+out/
+.vscode/
+release/qa_test/sa5_tests/

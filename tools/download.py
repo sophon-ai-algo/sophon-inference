@@ -1,0 +1,133 @@
+""" Download test data, or download and convert models
+Usage: python download_and_convert.py googlenet
+"""
+from __future__ import print_function
+import os
+import argparse
+import tarfile
+import sophon.utils.version as ve
+from six.moves import urllib
+
+def download_and_extract(base_url, save_dir, name, extract=True):
+  """download data and extract"""
+  ori_name = name
+  if extract:
+    name = name + '.tgz'
+  download_path = os.path.join(save_dir, name)
+  ret = True
+  try:
+    url_path = os.path.join(base_url, name)
+    opener = urllib.request.URLopener()
+    print("downloading {}".format(name))
+    opener.retrieve(url_path, download_path)
+    print("{} download finished!".format(name))
+    if extract:
+      print("extract {} to {}".format(name, save_dir))
+      with tarfile.open(download_path) as tar_file:
+        tar_file.extractall(save_dir)
+      os.remove(download_path)
+      print("{} decompress finished".format(name))
+  except OSError:
+    print("Failed to download {}".format(name))
+    ret = False
+  return ret
+
+def download_model_with_version(base_url, save_dir, name, version):
+  """download bmodel and umodel"""
+  ret = True
+  prefix = name.split(".")[0]
+  postfix = name.split(".")[1]
+  model_name = prefix + '_' + version + "." + postfix
+  model_path = os.path.join(save_dir, model_name)
+  file_name = model_name
+  extract = True
+  if "tgz" == postfix:
+    extract = False
+  if os.path.exists(model_path):
+    print("Model already existed")
+    return True
+  ret = download_and_extract(base_url, save_dir, model_name, extract)
+  return ret
+
+def main():
+  """Program entry point.
+  """
+  base_url = 'https://sophon-file.bitmain.com.cn/sophon-prod/model/19/12/05/'
+  #base_url = 'http://10.30.34.184:8080/sophon_model/version_test'
+  save_dir = FLAGS.save_path
+  version = FLAGS.version
+#  model_dir = os.path.join(save_dir, 'models')
+#  data_dir = os.path.join(save_dir, 'data')
+  model_dir = save_dir
+  data_dir = save_dir
+  model_list = [
+      'mtcnn_caffe.tgz',
+      'mtcnn_fp32.bmodel',
+      'resnet50_caffe.tgz',
+      'resnet50_fp32.bmodel',
+      'resnet50_int8.bmodel',
+      'ssd_fp32.bmodel',
+      'ssd_int8.bmodel',
+      'ssd_vgg_caffe.tgz',
+      'yolov3_caffe.tgz',
+      'yolov3_fp32.bmodel',
+      'yolov3_int8.bmodel',
+  ]
+  data_list = [
+      'cls.jpg',
+      'det.h264',
+      'det.jpg',
+      'face.jpg',
+  ]
+  if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+  if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
+  
+  if not version in ve.version_list:
+    print("version error")
+    return False
+  if FLAGS.arg == 'all':
+    for model_name in model_list:
+      download_model_with_version(base_url, model_dir, model_name, version)
+    for data_name in data_list:
+      ret = download_and_extract(base_url, save_dir, data_name)
+  elif FLAGS.arg == 'model_list':
+    print("default model list:")
+    for name in model_list:
+      print("- {}".format(name))
+  elif FLAGS.arg == 'test_data':
+    for data_name in data_list:
+      ret = download_and_extract(base_url, save_dir, data_name)
+  elif FLAGS.arg in model_list:
+    model_name = FLAGS.arg
+    download_model_with_version(base_url, model_dir, model_name, version)
+  elif FLAGS.arg in data_list:
+    data_name = FLAGS.arg
+    ret = download_and_extract(base_url, save_dir, data_name)
+  else:
+    raise ValueError('Invalid argument', FLAGS.arg)
+
+if __name__ == '__main__':
+#  sophon_model_dir = os.getenv('SOPHON_MODEL_DIR',os.getenv('HOME'))
+#  default_save_dir = os.path.join(sophon_model_dir, '.sophon/')
+  default_save_dir = os.getcwd()
+  PARSER = argparse.ArgumentParser(\
+      description='Download test data, or download and convert models.')
+  PARSER.add_argument(
+      "arg",
+      type=str,
+      help="Options: model_name, 'model_list', 'test_data', 'all'")
+  PARSER.add_argument(
+     "--save_path",
+     type=str,
+     default=default_save_dir,
+     help="Save sophon test model and test data.")
+  PARSER.add_argument(
+     "--version",
+     type=str,
+     default=ve.__version__,
+     help="Default version is latest.")
+  FLAGS, UNPARSED = PARSER.parse_known_args()
+  main()
+

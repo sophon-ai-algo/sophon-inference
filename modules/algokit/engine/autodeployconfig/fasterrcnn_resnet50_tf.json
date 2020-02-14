@@ -1,0 +1,11 @@
+{
+  "source_path": "fasterrcnn_resnet50_tf",
+  "subgraph_path": "fasterrcnn_resnet50_tf/subgraph",
+  "tfmodel_path": "fasterrcnn_resnet50_tf/fasterrcnn_resnet50.pb",
+  "framework": "tensorflow",
+  "input_names": ["image_tensor:0"],
+  "output_names": ["num_detections:0", "detection_classes:0", "detection_boxes:0", "detection_scores:0"],
+  "layout": "NHWC",
+  "is_dynamic": false,
+  "input_shapes": [[1, 600, 800, 3]]
+}

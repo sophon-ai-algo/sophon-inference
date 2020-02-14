@@ -1,0 +1,82 @@
+#!/bin/bash
+
+if [ "$1" == "" ];then
+  echo "usage : ./split_tf_model  -p your tpu version, BM1682 or BM1684."
+  echo "                          -t target directory to save splitted models."
+  echo "                          -m model path"
+  echo "                          -w weight path"
+  echo "                          -d if dynamic, 0 for static or 1 for dynamic"
+  echo "                          -n input tensor names, splitted by comma, x,x"
+  echo "                          -s input tensor shapes, splitted by comma, (x,x,x,x),(x,x)"
+  echo "                          -o output tensor names, splitted by comma, x,x"
+  echo "                          -r optional, input tensor value range, splitted by comma, (x,y), (x,y)"
+  echo "                          -v optional, input tensor value dtype, int or float"
+  exit 1
+fi
+
+while getopts "p:t:m:w:d:n:s:o:r:v:" opt
+do
+  case $opt in
+    p)
+    echo "tpu version is $OPTARG"
+    tpu=$OPTARG
+    ;;
+    t)
+    echo "target_dir is $OPTARG"
+    target_dir=$OPTARG
+    ;;
+    m)
+    echo "model_path is $OPTARG"
+    model_path=$OPTARG
+    ;;
+    w)
+    echo "weight_path is $OPTARG"
+    weight_path=$OPTARG
+    ;;
+    d)
+    echo "dynamic is $OPTARG"
+    dynamic=$OPTARG
+    ;;
+    n)
+    echo "input_names is $OPTARG"
+    input_names=$OPTARG
+    ;;
+    s)
+    echo "input_shapes is $OPTARG"
+    input_shapes=$OPTARG
+    ;;
+    o)
+    echo "output_names is $OPTARG"
+    output_names=$OPTARG
+    ;;
+    r)
+    echo "input_range is $OPTARG"
+    input_range=$OPTARG
+    ;;
+    v)
+    echo "input_dtype is $OPTARG"
+    input_dtype=$OPTARG
+    ;;
+    ?)
+    echo "usage : ./split_tf_model -p your tpu version, BM1682 or BM1684."
+    echo "                         -t target directory to save splitted models."
+    echo "                         -m model path"
+    echo "                         -w weight path"
+    echo "                         -d if dynamic, 0 for static or 1 for dynamic"
+    echo "                         -n input tensor names, splitted by comma, x,x"
+    echo "                         -s input tensor shapes, splitted by comma, (x,x,x,x),(x,x)"
+    echo "                         -o output tensor names, splitted by comma, x,x"
+    echo "                         -r input tensor value range, splitted by comma, (x,y), (x,y)"
+    echo "                         -v input tensor value dtype, int or float"
+    exit 1;;
+  esac
+done
+
+
+
+if [ "$input_range" == "" ]; then
+  python3 -m sophon.auto_split.split_tensorflow --tpu=$tpu --save_dir=$target_dir --model_path=$model_path --dynamic=$dynamic --input_names=$input_names --input_shapes=$input_shapes --output_names=$output_names
+else
+  python3 -m sophon.auto_split.split_tensorflow --tpu=$tpu --save_dir=$target_dir --model_path=$model_path --dynamic=$dynamic --input_names=$input_names --input_shapes=$input_shapes --output_names=$output_names --input_range=$input_range --input_dtype=$input_dtype
+fi
+

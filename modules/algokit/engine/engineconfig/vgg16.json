@@ -1,0 +1,11 @@
+{
+  "arch": {
+    "context_path": "vgg16_ir/compilation.bmodel",
+    "is_dynamic": false,
+    "tpus": "0",
+    "input_names": ["data"],
+    "output_names": ["prob"],
+    "input_shapes": [[1, 3, 224, 224]]
+  },
+  "xform": [["resize", [224, 224]], ["submean", [104.00698853, 116.66876984, 122.67891693]], ["transpose", [2, 0, 1]]]
+}

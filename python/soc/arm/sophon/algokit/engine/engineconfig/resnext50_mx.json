@@ -1,0 +1,11 @@
+{
+  "arch": {
+    "context_path": "resnext50_mx_ir/compilation.bmodel",
+    "is_dynamic": false,
+    "tpus": "0",
+    "input_names": ["data"],
+    "output_names": ["resnext0_dense0_fwd_output"],
+    "input_shapes": [[1, 3, 224, 224]]
+  },
+  "xform": [["resize", [224, 224]], ["transpose", [2, 0, 1]], ["bgr2rgb", true]]
+}

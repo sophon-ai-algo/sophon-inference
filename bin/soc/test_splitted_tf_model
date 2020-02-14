@@ -1,0 +1,28 @@
+#!/bin/bash
+
+if [ "$1" == "" ];then
+  echo "usage : ./test_splitted_tf_model -m input tfmodel path"
+  echo "                                 -s input submodel path"
+  exit 1
+fi
+
+while getopts "m:s:" opt; do
+  case $opt in
+    m)
+    echo "tfmodel_path is $OPTARG"
+    tfmodel_path=$OPTARG
+    ;;
+    s)
+    echo "submodel_path is $OPTARG"
+    submodel_path=$OPTARG
+    ;;
+    \?)
+    echo "usage : ./test_splitted_tf_model -m input tfmodel path"
+    echo "                                 -s input submodel path"
+    exit 1;;
+  esac
+done
+
+
+python3 -m sophon.auto_runner.check_tensorflow --tfmodel_path ${tfmodel_path} --submodel_path ${submodel_path}
+

@@ -1,0 +1,10 @@
+{
+  "arch": {
+    "context_path": "mobilenetyolov3_ir/compilation.bmodel",
+    "is_dynamic": false,
+    "tpus": "0",
+    "input_names": ["data"],
+    "output_names": ["conv22", "conv23", "conv24"],
+    "input_shapes": [[1, 3, 416, 416]]
+  }
+}

@@ -1,0 +1,13 @@
+Module Name          Position                  Owner
+
+SAIL:                include/ src/             @tong.liu
+BMCVWrapper:         include/ src/             @mike.wu
+AutoSplit:           modules/auto_split        @zhenpeng.xiao
+AutoRunner:          modules/auto_runner       @zhenpeng.xiao
+AlgoKit:             modules/algokit           @haipeng.wan
+Utils:               modules/utils             @juntao.tong
+Samples:             samples/                  @lian.he
+Tests:               tests/                    @lian.he
+Tools:               tools/                    @juntao.tong
+Docker:              docker/                   @tong.liu
+Docs:                docs/                     @zhenpeng.xiao

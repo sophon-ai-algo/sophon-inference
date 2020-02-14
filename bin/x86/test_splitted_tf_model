@@ -1,0 +1,38 @@
+#!/bin/bash
+
+if [ "$1" == "" ];then
+  echo "usage : ./test_splitted_tf_model -m input tfmodel path"
+  echo "                                 -s input submodel path"
+  echo "                                 -c 0 or 1, if using cmodel"
+  exit 1
+fi
+
+while getopts "m:s:c:" opt; do
+  case $opt in
+    m)
+    echo "tfmodel_path is $OPTARG"
+    tfmodel_path=$OPTARG
+    ;;
+    s)
+    echo "submodel_path is $OPTARG"
+    submodel_path=$OPTARG
+    ;;
+    c)
+    echo "use_cmodel is $OPTARG"
+    use_cmodel=$OPTARG
+    ;;
+    \?)
+    echo "usage : ./test_splitted_tf_model -m input tfmodel path"
+    echo "                                 -s input submodel path"
+    echo "                                 -c 0 or 1, if using cmodel"
+    exit 1;;
+  esac
+done
+
+if [ "$use_cmodel" == "" ];then
+  use_cmodel="0"
+fi
+
+
+python3 -m sophon.auto_runner.check_tensorflow --tfmodel_path ${tfmodel_path} --submodel_path ${submodel_path} --use_cmodel ${use_cmodel}
+
