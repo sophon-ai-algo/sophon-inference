@@ -17,11 +17,13 @@ ID|Input|Decoder|Preprocessor|Data Type|Model|Mode|Batch Size|Multi-Thread
 -|-|-|-|-|-|-|-|-
 1|video/image|opencv|opencv|fp32/int8|ssd_vgg|static|1|N
 2|video/image|bm-ffmpeg|bmcv|fp32/int8|ssd_vgg|static|1|N
-3|video/image|bm-ffmpeg|bmcv|fp32/int8|ssd_vgg|static|4|N
+3|video|bm-ffmpeg|bmcv|fp32/int8|ssd_vgg|static|4|N
 4|video/image|bm-opencv|bm-opencv|fp32/int8|ssd_vgg|static|1|N
 5|video/image|bm-opencv|bmcv|fp32/int8|ssd_vgg|static|1|N
-6|multi-video|opencv|opencv|fp32/int8|yolov3|static|1|Y
-7|multi-video|bm-ffmpeg|bmcv|fp32/int8|yolov3|static|1|Y
+6|video|opencv|opencv|fp32/int8|yolov3|static|1|Y
+7|video|bm-ffmpeg|bmcv|fp32/int8|yolov3|static|1|Y
+
+* Attention: 4 and 5 are only for SOC mode.
 
 [det_ssd](det_ssd/README.md)
 [det_yolov3](det_yolov3/README.md)

@@ -8,8 +8,13 @@ from distutils.core import setup, Extension
 from setuptools import find_packages
 
 # check sail pylib status
+LIB_DIR = '../../build/lib/'
 X86_PATH = '../../build/lib/sail.cpython-35m-x86_64-linux-gnu.so'
 DST_PATH = './sophon'
+for root,dirs,files in os.walk(LIB_DIR):
+  for file in files:
+    if file.split('.')[0] == 'sail':
+      X86_PATH=os.path.join(root,file)
 
 if os.path.exists(X86_PATH):
   print("x86")

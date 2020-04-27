@@ -13,6 +13,7 @@ You may obtain a copy of the License at
  limitations under the License.
 """
 import sys
+import os
 import argparse
 import numpy as np
 from sophon import sail
@@ -58,7 +59,8 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
     # postprocess
     result = postprocess(output[output_name])
     # print result
-    print("Top 5 of loop {}: {}".format(i, result[1]['top5_idx'][0]))
+    print("Top 5 of loop {} on tpu {}: {}".format(i, tpu_id, \
+                                                  result[1]['top5_idx'][0]))
     if not compare(reference, result[1]['top5_idx'][0], compare_type):
       return False
   return True
@@ -73,6 +75,9 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   status = inference(ARGS.bmodel, ARGS.input,
                      ARGS.loops, ARGS.tpu_id, ARGS.compare)
   sys.exit(0 if status else -1)

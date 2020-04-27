@@ -73,6 +73,7 @@ PYBIND11_MODULE(sail, m) {
 
   m.def("get_available_tpu_num", &get_available_tpu_num);
   m.def("_dryrun", &model_dryrun);
+  m.def("_perf",   &multi_tpu_perf);
 
   py::enum_<bm_data_type_t>(m, "Dtype")
     .value("BM_FLOAT32", bm_data_type_t::BM_FLOAT32)
@@ -88,7 +89,8 @@ PYBIND11_MODULE(sail, m) {
     .export_values();
 
   py::class_<Handle>(m, "Handle")
-    .def(py::init<int>());
+    .def(py::init<int>())
+    .def("get_device_id", &Handle::get_device_id);
 
   py::class_<Tensor>(m, "Tensor")
     .def(py::init<Handle, const std::vector<int>&, bm_data_type_t, bool, bool>())
@@ -104,7 +106,7 @@ PYBIND11_MODULE(sail, m) {
     .def("update_data",           (void (Tensor::*)(pybind11::array_t<float>&)) &Tensor::update_data)
     .def("update_data",           (void (Tensor::*)(pybind11::array_t<int8_t>&)) &Tensor::update_data)
     .def("update_data",           (void (Tensor::*)(pybind11::array_t<uint8_t>&)) &Tensor::update_data)
-    .def("scale_from",            &Tensor::scale_from)
+    .def("scale_from",            (void (Tensor::*)(pybind11::array_t<float>&, float)) &Tensor::scale_from)
     .def("scale_to",              (py::array_t<float> (Tensor::*)(float)) &Tensor::scale_to)
     .def("scale_to",              (py::array_t<float> (Tensor::*)(float, const std::vector<int>&)) &Tensor::scale_to)
     .def("sync_s2d",              (void (Tensor::*)()) &Tensor::sync_s2d, "move all data from system to device")
@@ -119,6 +121,7 @@ PYBIND11_MODULE(sail, m) {
     .def("load", (bool (Engine::*)(const std::string&))&Engine::load)
     .def("load", (bool (Engine::*)(py::bytes&, int))&Engine::load)
     .def("get_handle",            (Handle& (Engine::*)())&Engine::get_handle)
+    .def("get_device_id",         &Engine::get_device_id)
     .def("get_graph_names",       &Engine::get_graph_names)
     .def("set_io_mode",           &Engine::set_io_mode)
     .def("get_input_names",       &Engine::get_input_names)

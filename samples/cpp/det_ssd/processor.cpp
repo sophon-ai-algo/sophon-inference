@@ -15,11 +15,17 @@ You may obtain a copy of the License at
 ==============================================================================*/
 
 #include <numeric>
+#include <fstream>
 #ifndef USE_PCIE
 #include <opencv2/opencv.hpp>
 #endif
 #include "inireader.hpp"
 #include "processor.h"
+
+bool file_exists(const std::string& file_path) {
+  std::ifstream f(file_path.c_str());
+  return f.good();
+}
 
 PreProcessor::PreProcessor(float scale) :
   ab_{1, -123, 1, -117, 1, -104} {

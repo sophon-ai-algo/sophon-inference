@@ -26,12 +26,15 @@ endif()
 # build cpp api lib
 add_library(sail SHARED ${CORE_SRC})
 
+# build python api lib
 add_subdirectory(pybind11)
-
 if((NOT USE_PCIE) OR USE_ARM_PCIE)
   include_directories(${PROJECT_SOURCE_DIR}/3rdparty/prebuild/include)
 endif()
-
+if(CUSTOM_PY_LIBDIR)
+  link_directories(${CUSTOM_PY_LIBDIR})
+  message(STATUS "CUSTOM_PY_LIBDIR = ${CUSTOM_PY_LIBDIR}")
+endif()
 add_library(pysail MODULE bind.cpp ${CORE_SRC})
 if(USE_PCIE)
   target_include_directories(pysail PUBLIC ${PYBIND11_INCLUDE_DIR}
@@ -40,7 +43,6 @@ else()
   target_include_directories(pysail PUBLIC ${PYBIND11_INCLUDE_DIR})
 endif()
 
-# build python api lib
 target_compile_definitions(pysail PUBLIC -DPYTHON)
 if(USE_PCIE AND (NOT USE_ARM_PCIE))
   target_link_libraries(pysail PRIVATE pybind11::module pybind11::embed)

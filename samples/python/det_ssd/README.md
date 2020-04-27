@@ -1,10 +1,10 @@
-### Object Detection Example of SSD
+### Object Detection Examples of SSD
 
 Name|Input|Decoder|Batch Size|Preprocessor|Data Type|Model
 -|-|-|-|-|-|-
-det_ssd_0.py|video|opencv|1|opencv|fp32/int8|ssd_vgg
+det_ssd_0.py|image/video|opencv|1|opencv|fp32/int8|ssd_vgg
 det_ssd_1.py|image/video|ffmpeg|1|bmcv|fp32/int8|ssd_vgg
-det_ssd_2.py|video|ffmpeg|4|bmcv|int8|ssd_vgg
+det_ssd_2.py|video|ffmpeg|4|bmcv|fp32/int8|ssd_vgg
 
 ## Prepare Bmodel
 

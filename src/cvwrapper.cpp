@@ -128,7 +128,7 @@ Decoder::Decoder(
       video_dec_ctx_(nullptr), video_stream_(nullptr), video_stream_idx_(-1),
       video_frame_count_(0), got_frame_(0), height_(0), width_(0),
       compressed_(compressed), is_rtsp_(false), is_image_(false),
-      fps_(0), opened_(false), flush_(false) {
+      opened_(false), end_of_file_(false) {
   if (is_jpg_file(file_path_)) {
     is_image_ = true;
     return;
@@ -155,7 +155,7 @@ Decoder::Decoder(
     // set compressed output
     av_dict_set(&opts, "output_format", "101", 0);
   }
-
+  av_log_set_level(AV_LOG_ERROR);
   // open input file, and allocate format context
   int ret = avformat_open_input(&fmt_ctx_, file_path_.c_str(),
                                 nullptr, &opts);
@@ -190,14 +190,12 @@ Decoder::Decoder(
   }
   height_ = video_dec_ctx_->height;
   width_ = video_dec_ctx_->width;
-  fps_ = av_q2d(video_stream_->avg_frame_rate);
 
   // initialize packet, set data to NULL, let the demuxer fill it
   av_init_packet(&pkt_);
   pkt_.data = nullptr;
   pkt_.size = 0;
   opened_ = true;
-  flush_ = true;
   // destroy avdict
   av_dict_free(&opts);
 }
@@ -225,42 +223,39 @@ Decoder::~Decoder() {
   }
 }
 
-int Decoder::read(Frame& frame) {
+bool Decoder::grab(Frame& frame) {
+  if (end_of_file_) {
+    return false;
+  }
   AVFrame* p_frame = frame.get();
-  while (flush_) {
+  bool valid = false;
+  while (!valid) {
     av_packet_unref(&pkt_);
-    if (av_read_frame(fmt_ctx_, &pkt_) < 0) {
+    int ret = av_read_frame(fmt_ctx_, &pkt_);
+    if (ret == AVERROR(EAGAIN)) {
+      continue;
+    }
+    if (ret < 0) {
+      if (ret == static_cast<int>(AVERROR_EOF)) {
+        end_of_file_ = true;
+        return false;
+      }
       break;
     }
     if (pkt_.stream_index != video_stream_idx_) {
+      av_packet_unref(&pkt_);
       continue;
     }
     // decode video frame
-    int ret = avcodec_decode_video2(video_dec_ctx_, p_frame, &got_frame_, &pkt_);
-    if (got_frame_ <= 0) {
-      continue;
+    ret = avcodec_decode_video2(video_dec_ctx_, p_frame, &got_frame_, &pkt_);
+    if (got_frame_) {
+      valid = true;
     }
+  }
+  if (valid) {
     ++video_frame_count_;
-    return 0;
   }
-  if (flush_) {
-    pkt_.data = nullptr;
-    pkt_.size = 0;
-    flush_ = false;
-  }
-  do {
-    if (pkt_.stream_index != video_stream_idx_) {
-      continue;
-    }
-    // decode video frame
-    int ret = avcodec_decode_video2(video_dec_ctx_, p_frame, &got_frame_, &pkt_);
-    if (got_frame_ > 0) {
-      ++video_frame_count_;
-      usleep(2000);
-      return 0;
-    }
-  } while (got_frame_);
-  return 1;
+  return valid;
 }
 
 void Decoder::decode_jpeg(Handle& handle, BMImage& image) {
@@ -357,13 +352,15 @@ int Decoder::read_(Handle& handle, bm_image& image) {
     return 0;
   }
 
-  int ret = read(frame_);
+  int ret = grab(frame_);
+  if (!ret) {
+    return 1;
+  }
   AVFrame* p_frame = frame_.get();
   if (p_frame->format != AV_PIX_FMT_NV12 &&
       p_frame->format != AV_PIX_FMT_YUV420P &&
       p_frame->format != AV_PIX_FMT_YUVJ420P) {
-    spdlog::error("Frame format: {} is not supported!", p_frame->format);
-    exit(SAIL_ERR_DECODER_READ);
+    return 2;
   }
   // create bm_image with YUV-nv12 format
   if (p_frame->format == AV_PIX_FMT_NV12) {

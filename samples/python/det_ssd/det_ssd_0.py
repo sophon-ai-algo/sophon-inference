@@ -13,6 +13,7 @@ You may obtain a copy of the License at
  limitations under the License.
 """
 import sys
+import os
 import argparse
 import cv2
 import json
@@ -153,14 +154,21 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
   threshold = 0.59 if is_fp32 else 0.52
   postprocessor = PostProcessor(threshold)
   reference = postprocessor.get_reference(compare_path)
-  cap = cv2.VideoCapture(input_path)
+  is_image = True if input_path.split('.')[-1] in \
+             ['jpg', 'JPG', 'jpeg', 'JPEG'] else False
+  if not is_image:
+    cap = cv2.VideoCapture(input_path)
   status = True
   # pipeline of inference
   for i in range(loops):
     # read an image from a image file or a video file
-    ret, img0 = cap.read()
-    if not ret:
-      break
+    if is_image:
+      img0 = cv2.imread(input_path)
+    else:
+      ret, img0 = cap.read()
+      if not ret:
+        print("Finished to read the video!");
+        break
     h, w, _ = img0.shape
     # preprocess
     data = preprocessor.process(img0)
@@ -172,14 +180,16 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
     # print result
     if postprocessor.compare(reference, dets, i):
       for (class_id, score, x0, y0, x1, y1) in dets:
-        message = '[Frame{}] Category: {}, Score: {:.3f}, Box: [{}, {}, {}, {}]'
-        print(message.format(i + 1, class_id, score, x0, y0, x1, y1))
+        message = '[Frame {} on tpu {}] Category: {}, Score: {:.3f},'
+        message += ' Box: [{}, {}, {}, {}]'
+        print(message.format(i + 1, tpu_id, class_id, score, x0, y0, x1, y1))
         cv2.rectangle(img0, (x0, y0), (x1, y1), (255, 0, 0), 3)
       cv2.imwrite('result-{}.jpg'.format(i + 1), img0)
     else:
       status = False
       break
-  cap.release()
+  if not is_image:
+    cap.release()
   return status
 
 if __name__ == '__main__':
@@ -193,6 +203,9 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   status = inference(ARGS.bmodel, ARGS.input, \
                      ARGS.loops, ARGS.tpu_id, ARGS.compare)
   sys.exit(0 if status else -1)

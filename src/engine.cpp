@@ -152,12 +152,16 @@ Handle& Engine::get_handle() {
   return handle_;
 }
 
+int Engine::get_device_id() {
+  return handle_.get_device_id();
+}
+
 bool Engine::load(const std::string& bmodel_path) {
   std::vector<std::string> previous_graph_names = get_graph_names();
-  // check bmodel is exsit or not
+  // check bmodel is exist or not
   struct stat buffer;
   if (stat(bmodel_path.c_str(), &buffer) != 0) {
-    spdlog::error("bmodel {} does not exsit", bmodel_path);
+    spdlog::error("bmodel {} does not exist", bmodel_path);
     exit(SAIL_ERR_ENGINE_INIT);
   }
   if (!bmrt_load_bmodel(p_bmrt_, bmodel_path.c_str())) {
@@ -173,9 +177,9 @@ bool Engine::load(const std::string& bmodel_path) {
 }
 
 bool Engine::load(const void* bmodel_ptr, size_t bmodel_size) {
-  // check bmodel is exsit or not
+  // check bmodel is exist or not
   if (bmodel_size <= 0) {
-    spdlog::error("bmodel path does not exsit");
+    spdlog::error("bmodel path does not exist");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   std::vector<std::string> previous_graph_names = get_graph_names();

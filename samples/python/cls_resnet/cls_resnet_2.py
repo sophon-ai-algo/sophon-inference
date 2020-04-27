@@ -13,6 +13,7 @@ You may obtain a copy of the License at
  limitations under the License.
 """
 import sys
+import os
 import argparse
 import threading
 import json
@@ -92,8 +93,9 @@ def thread_infer(thread_id, graph_name, engine, \
     # postprocess
     result = postprocess(output_data)
     # print result
-    print("Top 5 for graph {} of loop {} in thread {}: {}".format(\
-        graph_name, i, thread_id, result[1]['top5_idx'][0]))
+    print("Top 5 for {} of loop {} in thread {} on tpu {}: {}".format(\
+        graph_name, i, thread_id, engine.get_device_id(), \
+        result[1]['top5_idx'][0]))
     if not compare(reference, result[1]['top5_idx'][0], compare_type):
       status[thread_id] = False
       return
@@ -143,4 +145,7 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   main()

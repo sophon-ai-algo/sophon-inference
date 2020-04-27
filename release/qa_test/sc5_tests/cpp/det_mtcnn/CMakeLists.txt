@@ -8,11 +8,6 @@ link_directories(${OpenCV_LIBRARY_DIRS})
 # bm lib path
 link_libraries(${BMSDK_LIBRARIES} ${OpenCV_LIBRARIES} ${SAIL_LIBRARY})
 
-if(USE_FFMPEG)
-  include_directories(${FFMPEG_INCLUDE_DIRS})
-  link_libraries(${FFMPEG_LIBRARIES} ${BMDECODE_LIBRARIES})
-endif()
-
 #add source files
 aux_source_directory(./ SRC)
 # build executable

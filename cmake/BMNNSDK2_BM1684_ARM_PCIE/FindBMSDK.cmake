@@ -14,8 +14,8 @@ find_path(BMSDK_BMRT_INCLUDE_DIR NAMES bmruntime_interface.h
 
 find_library(BMSDK_BMLIB_LIBRARY NAMES bmlib
   PATHS "${BMNNSDK2_PATH}/lib/bmnn/arm_pcie")
-# find_library(BMSDK_BMCV_LIBRARY NAMES bmcv
-#   PATHS "${BMNNSDK2_PATH}/lib/bmnn/pcie")
+find_library(BMSDK_BMCV_LIBRARY NAMES bmcv
+  PATHS "${BMNNSDK2_PATH}/lib/bmnn/arm_pcie")
 # set for centos
 if(USE_CENTOS)
   set(BMRT_INNER_PATH "bmnn/pcie/lib_CXX11_ABI0")

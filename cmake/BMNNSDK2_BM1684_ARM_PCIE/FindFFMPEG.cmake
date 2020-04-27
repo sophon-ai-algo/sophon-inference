@@ -13,7 +13,7 @@ set(FFMPEG_INCLUDE_DIRS
   ${BMNNSDK2_PATH}/include/ffmpeg)
 
 foreach(ITEM ${FFMPEG_COMPONENTS})
-  list(APPEND FFMPEG_LIBRARIES "${BMNNSDK2_PATH}/lib/ffmpeg/x86/lib${ITEM}.so")
+  list(APPEND FFMPEG_LIBRARIES "${BMNNSDK2_PATH}/lib/ffmpeg/arm_pcie/lib${ITEM}.so")
 endforeach()
 
 if(FFMPEG_INCLUDE_DIRS AND FFMPEG_LIBRARIES)

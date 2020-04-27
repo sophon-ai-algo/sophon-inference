@@ -5,16 +5,15 @@ set(BMDECODE_COMPONENTS
     bmjpuapi
     bmjpulite)
 
-set(BMDECODE_INCLUDE_DIRS
-    ${BMDECODER_DIR}/include/decode)
+set(BMDECODE_INCLUDE_DIRS ${BMDECODER_DIR}/include/decode)
 
 foreach(ITEM ${BMDECODE_COMPONENTS})
-    list(APPEND BMDECODE_LIBRARIES "${BMDECODER_DIR}/libs/pcie/decode/lib${ITEM}.so")
+  list(APPEND BMDECODE_LIBRARIES "${BMDECODER_DIR}/libs/pcie/decode/lib${ITEM}.so")
 endforeach()
 
 if(BMDECODE_INCLUDE_DIRS AND BMDECODE_LIBRARIES)
-    set(BMDECODE_FOUND TRUE)
-    message(STATUS "Bitmain DECODE found")
+  set(BMDECODE_FOUND TRUE)
+  message(STATUS "Bitmain DECODE found")
 else(BMDECODE_INCLUDE_DIRS AND BMDECODE_LIBRARIES)
-    message(STATUS "Bitmain DECODE not found")
+  message(STATUS "Bitmain DECODE not found")
 endif(BMDECODE_INCLUDE_DIRS AND BMDECODE_LIBRARIES)

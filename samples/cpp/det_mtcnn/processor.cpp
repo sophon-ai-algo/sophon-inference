@@ -15,10 +15,15 @@ You may obtain a copy of the License at
 ==============================================================================*/
 
 #include <algorithm>
+#include <fstream>
 #include "inireader.hpp"
 #include "spdlog/spdlog.h"
 #include "processor.h"
-#include <iostream>
+
+bool file_exists(const std::string& file_path) {
+  std::ifstream f(file_path.c_str());
+  return f.good();
+}
 
 PreProcessor::PreProcessor()
     : scale_factor_(0.0078125), face_factor_(0.89), min_size_(40) {

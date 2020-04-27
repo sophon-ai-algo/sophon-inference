@@ -12,20 +12,23 @@ find_path(BMSDK_BMLIB_INCLUDE_DIR NAMES bmlib_runtime.h
 find_path(BMSDK_BMRT_INCLUDE_DIR NAMES bmruntime_interface.h
           PATHS "${NNT_PATH}/include/bmruntime")
 
-find_library(BMSDK_BMLIB_LIBRARY NAMES bmlib
-             PATHS "${BM168X_PATH}/libs/pcie")
 find_library(BMSDK_BMCV_LIBRARY NAMES bmcv
              PATHS "${BM168X_PATH}/libs/pcie")
-# set for centos
-if(USE_CENTOS)
-  set(BMRT_INNER_PATH "bmnn/pcie/lib_CXX11_ABI0")
+
+if(USE_LOCAL)
+  set(BMRT_INNER_PATH "bmnn/pcie")
 else()
-  if(USE_LOCAL)
-    set(BMRT_INNER_PATH "bmnn/pcie")
+  # set for centos
+  if(USE_CENTOS)
+    set(BMRT_INNER_PATH "bmnn/pcie/lib_CXX11_ABI0")
+  # set for ubuntu
   else()
     set(BMRT_INNER_PATH "bmnn/pcie/lib_CXX11_ABI1")
   endif()
 endif()
+
+find_library(BMSDK_BMLIB_LIBRARY NAMES bmlib
+             PATHS "${NNT_PATH}/lib/bmnn/pcie")
 find_library(BMSDK_BMRT_LIBRARY NAMES bmrt
              PATHS "${NNT_PATH}/lib/${BMRT_INNER_PATH}")
 find_library(BMSDK_BMCPU_LIBRARY NAMES bmcpu

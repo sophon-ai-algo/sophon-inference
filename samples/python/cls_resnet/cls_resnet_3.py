@@ -13,6 +13,7 @@ You may obtain a copy of the License at
  limitations under the License.
 """
 import sys
+import os
 import argparse
 import threading
 import numpy as np
@@ -59,8 +60,8 @@ def thread_infer(thread_id, engine, input_path, loops, compare_path, status):
     # postprocess
     result = postprocess(output[output_name])
     # print result
-    print("Top 5 of loop {} thread {} on TPU: {}".format(\
-        i, thread_id, result[1]['top5_idx'][0]))
+    print("Top 5 of loop {} in thread {} on tpu {}: {}".format(\
+        i, thread_id, engine.get_device_id(), result[1]['top5_idx'][0]))
     if not compare(reference, result[1]['top5_idx'][0], compare_type):
       status[thread_id] = False
       return
@@ -80,9 +81,9 @@ def main():
   status = [None] * thread_num
   for i in range(thread_num):
     threads.append(threading.Thread(target=thread_infer,
-                                    args=(i, engines[i], ARGS.input, \
-                                          ARGS.loops, ARGS.compare, \
-                                          status)))
+                                    args=(i, engines[i], \
+                                          ARGS.input, ARGS.loops, \
+                                          ARGS.compare, status)))
   for i in range(thread_num):
     threads[i].start()
   for i in range(thread_num):
@@ -101,4 +102,7 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', action='append', type=int, required=True)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   main()

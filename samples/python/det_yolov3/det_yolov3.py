@@ -14,6 +14,7 @@ You may obtain a copy of the License at
 """
 from __future__ import division
 import sys
+import os
 import argparse
 import json
 import cv2
@@ -184,7 +185,8 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
     # print result
     if compare(reference, bboxes, classes, probs, loop):
       for bbox, cls, prob in zip(bboxes, classes, probs):
-        print("Category: {}, Score: {:.3f}, Box: {}".format(cls, prob, bbox))
+        print("[tpu {}] Category: {}, Score: {:.3f}, Box: {}".format(\
+            tpu_id, cls, prob, bbox))
     else:
       status = False
       break
@@ -202,6 +204,9 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   status = inference(ARGS.bmodel, ARGS.input, \
                      ARGS.loops, ARGS.tpu_id, ARGS.compare)
   sys.exit(0 if status else -1)

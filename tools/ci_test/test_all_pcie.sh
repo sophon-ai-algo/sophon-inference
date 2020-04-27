@@ -8,6 +8,7 @@ function judge_ret() {
     echo "Failed: $2"
     exit 1
   fi
+  sleep 1
 }
 
 function cpp_test() {
@@ -63,6 +64,9 @@ function cpp_test() {
 }
 
 function python_test() {
+  pushd ./python
+    source ./setup_dev_python_path.sh
+  popd
   # test cls_resnet
   python3 ./samples/python/cls_resnet/cls_resnet_0.py --bmodel $DATA_DIR/resnet50_fp32.bmodel --input $DATA_DIR/cls.jpg --loops 1 --compare $DATA_DIR/verify/python/verify_resnet50.json
   judge_ret $? "cls_resnet_0 fp32"

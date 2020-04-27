@@ -458,12 +458,12 @@ class Decoder {
 
  private:
   /**
-   * @brief Read a frame from the Decoder.
+   * @brief Grabs the next frame.
    *
    * @param frame Reference of frame to be read to
-   * @return 0 for success and 1 for failure
+   * @return True for success and false for failure
    */
-  int read(Frame& frame);
+  bool grab(Frame& frame);
   /**
    * @brief Convert frame with format of AV_PIX_FMT_NV12 to bm_image.
    *
@@ -493,8 +493,6 @@ class Decoder {
   int height_;
   /// Width of frame.
   int width_;
-  /// fps of the Decoder.
-  int fps_;
   /// bm_handle
   bm_handle_t handle_;
   /// Decoded frame
@@ -507,8 +505,8 @@ class Decoder {
   bool is_rtsp_;
   /// Indicator of whether the input source is image file.
   bool is_image_;
-  /// Flag of whether to read frame from buffer.
-  bool flush_;
+  /// Flag of whether to read to end of the video.
+  bool end_of_file_;
 };
 #endif
 

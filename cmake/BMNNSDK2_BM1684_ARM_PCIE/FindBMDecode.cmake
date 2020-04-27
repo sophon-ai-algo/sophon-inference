@@ -9,7 +9,7 @@ set(BMDECODE_INCLUDE_DIRS
     ${BMDECODER_DIR}/include/decode)
 
 foreach(ITEM ${BMDECODE_COMPONENTS})
-  list(APPEND BMDECODE_LIBRARIES "${BMNNSDK2_PATH}/lib/decode/x86/lib${ITEM}.so")
+  list(APPEND BMDECODE_LIBRARIES "${BMNNSDK2_PATH}/lib/decode/arm_pcie/lib${ITEM}.so")
 endforeach()
 
 if(BMDECODE_INCLUDE_DIRS AND BMDECODE_LIBRARIES)

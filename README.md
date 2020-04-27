@@ -29,7 +29,7 @@ docker run -it --device /dev/bm1682-dev0 --device /dev/bmdev-ctl --rm sophonai/s
 
 ## Prerequisites and Compilation
 
-- **BMNNSDK**         Required
+- **BMNNSDK2**        Required
 - **CMake**           Required
 - **OpenCV**          Required for C++ samples
 - **Python3**         Optional for python samples
@@ -45,10 +45,6 @@ mkdir build
 cd build
 cmake ..
 make
-```
-* Note: Our default python version is 3.5. If your python version is not 3.5, please add -DPYBIND11_PYTHON_VERSION={your python version} when execute cmake command. After make, please checkout the build/lib/sail.cpython-{your python version}-x86_64-linux-gnu.so then set the path to python/pcie/setup.py. Finally, you must ensure that the pip3 and python3 command link to the python you have set before.
-```
-line 11:X86_PATH = '../../build/lib/sail.cpython-{your python version}-x86_64-linux-gnu.so'
 ```
 
 ## Samples
@@ -68,11 +64,13 @@ ID|Input|Decoder|Preprocessor|Data Type|Model|Mode|Batch Size|Multi-Thread
 -|-|-|-|-|-|-|-|-
 1|video/image|opencv|opencv|fp32/int8|ssd_vgg|static|1|N
 2|video/image|bm-ffmpeg|bmcv|fp32/int8|ssd_vgg|static|1|N
-3|video/image|bm-ffmpeg|bmcv|fp32/int8|ssd_vgg|static|4|N
+3|video|bm-ffmpeg|bmcv|fp32/int8|ssd_vgg|static|4|N
 4|video/image|bm-opencv|bm-opencv|fp32/int8|ssd_vgg|static|1|N
 5|video/image|bm-opencv|bmcv|fp32/int8|ssd_vgg|static|1|N
-6|multi-video|opencv|opencv|fp32/int8|yolov3|static|1|Y
-7|multi-video|bm-ffmpeg|bmcv|fp32/int8|yolov3|static|1|Y
+6|video|opencv|opencv|fp32/int8|yolov3|static|1|Y
+7|video|bm-ffmpeg|bmcv|fp32/int8|yolov3|static|1|Y
+
+* Attention: 4 and 5 are only for SOC mode, 7 is only for CPP test.
 
 ### Face Detection
 

@@ -3,10 +3,10 @@
 Name|Input|Decoder|Batch Size|Preprocessor|Data Type|Model|PCIE or SOC
 -|-|-|-|-|-|-|-
 det_ssd_0|image/video|opencv|1|opencv|int8/fp32|ssd_vgg|both
-det_ssd_1|image/video|ffmpeg|1|bmcv|int8/fp32|ssd_vgg|soc
-det_ssd_2|video|ffmpeg|4|bmcv|int8/fp32|ssd_vgg|soc
-det_ssd_3|image/video|bm-opencv|1|bm-opencv+bmcv|int8/fp32|ssd_vgg|both
-det_ssd_4|image/video|bm-opencv|1|bmcv|int8/fp32|ssd_vgg|both
+det_ssd_1|image/video|ffmpeg|1|bmcv|int8/fp32|ssd_vgg|pcie|both
+det_ssd_2|video|ffmpeg|4|bmcv|int8/fp32|ssd_vgg|pcie|both
+det_ssd_3|image/video|bm-opencv|1|bm-opencv+bmcv|int8/fp32|ssd_vgg|soc
+det_ssd_4|image/video|bm-opencv|1|bmcv|int8/fp32|ssd_vgg|soc
 
 ## Prepare Bmodel
 
@@ -81,7 +81,6 @@ python3 ./download.py det.h264
 # run int8 bmodel with input of video
 ./det_ssd_0 --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1
 ```
-
 
 * A SSD example using bm-ffmpeg to decode and using bmcv to preprocess.
 

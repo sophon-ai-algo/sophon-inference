@@ -1,11 +1,9 @@
-## Summary
+## Object Detection Examples of YOLOv3
 
-Run yolov3 object detection with:
-
-Input|Decode|Pre-process|Inference
--|-|-|-
-video|opencv|opencv|Sail
-video|FFMPEG|Bmcv|Sail
+Name|Input|Decoder|Preprocessor|Data Type|Model|Mode|Batch Size|Multi-Thread
+-|-|-|-|-|-|-|-|-
+det_yolov3_0|video|opencv|opencv|fp32/int8|yolov3|static|1|Y
+det_yolov3_1|video|bm-ffmpeg|bmcv|fp32/int8|yolov3|static|1|Y
 
 ## Prepare Bmodel
 

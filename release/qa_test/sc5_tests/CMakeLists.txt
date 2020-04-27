@@ -1,6 +1,9 @@
 project(sc5_tests)
 cmake_minimum_required(VERSION 3.0)
 
+# Set compile options
+option(BUILD_ON_ARM "ON for arm and OFF for x86" OFF)
+
 # print log
 add_definitions(-DPRINT_DETAILS)
 
@@ -18,41 +21,39 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH    ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_MODULE_PATH      ${CMAKE_SOURCE_DIR}/cmake)
 
-if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0.0)
-  message("-- use _GLIBCXX_USE_CXX11_ABI=0")
-  add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
-  # libstdc++
-  set(STDCPP_LIB_DIR ${BMNNSDK2_PATH}/lib/sys)
-  file(GLOB STDCPP_LIBS "${STDCPP_LIB_DIR}/lib*.so*")
-  foreach (lib_name ${STDCPP_LIBS})
-    set(STDCPP_LINK_LIBS ${STDCPP_LIBS} ${lib_name})
-  endforeach ()
-endif ()
-
 # include
+add_definitions(-DUSE_PCIE)
 add_definitions(-DUSE_FFMPEG)
 add_definitions(-DUSE_BMCV)
-add_definitions(-DUSE_PCIE)
-#if(USE_PCIE)
-set(CMAKE_MODULE_PATH      ${CMAKE_SOURCE_DIR}/cmake)
-link_directories(${BMNNSDK2_PATH}/lib/ffmpeg)
-link_directories(${BMNNSDK2_PATH}/lib/decode)
+if(BUILD_ON_ARM)
+  set(CMAKE_MODULE_PATH      ${CMAKE_SOURCE_DIR}/cmake/arm)
+else()
+  set(CMAKE_MODULE_PATH      ${CMAKE_SOURCE_DIR}/cmake/x86)
+endif()
 
-
+# find opencv3
 find_package(OpenCV 3 REQUIRED)
+# find BMSDK
 find_package(BMNNSDK2 REQUIRED)
 
 include_directories(${BMNNSDK2_INCLUDE_DIRS}
                     ${PROJECT_SOURCE_DIR}/include
                     ${OpenCV_INCLUDE_DIRS})
 
-
 # lib
 link_libraries(${OpenCV_LIBRARIES} ${BMNNSDK2_LIBRARIES} ${SAIL_LIBRARY})
 
-if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0.0)
-  link_libraries(${STDCPP_LINK_LIBS})
-endif ()
+if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0.0)
+  add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+  # libstdc++
+  if(BUILD_ON_ARM)
+    set(STDCPP_LIB_DIR ${BMNNSDK2_PATH}/lib/sys/aarch64)
+  else()
+    set(STDCPP_LIB_DIR ${BMNNSDK2_PATH}/lib/sys/x86)
+  endif()
+  file(GLOB STDCPP_LIBS "${STDCPP_LIB_DIR}/lib*.so*")
+  link_libraries(${STDCPP_LIBS})
+endif()
 
 # cpp sail target
 add_subdirectory(cpp/cls_resnet)

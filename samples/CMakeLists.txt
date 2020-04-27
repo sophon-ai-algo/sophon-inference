@@ -1,4 +1,23 @@
 # cpp sail target
+if(USE_CENTOS)
+  # libstdc++
+  if(USE_ARM_PCIE)
+    if(USE_BMNNSDK2)
+      set(STDCPP_LIB_DIR ${BMNNSDK2_PATH}/lib/sys/aarch64)
+    else()
+      set(STDCPP_LIB_DIR ${NNT_PATH}/lib/sys/aarch64)
+    endif()
+  else()
+    if(USE_BMNNSDK2)
+      set(STDCPP_LIB_DIR ${BMNNSDK2_PATH}/lib/sys/x86)
+    else()
+      set(STDCPP_LIB_DIR ${NNT_PATH}/lib/sys/x86)
+    endif()
+  endif()
+  file(GLOB STDCPP_LIBS "${STDCPP_LIB_DIR}/lib*.so*")
+  link_libraries(${STDCPP_LIBS})
+endif()
+
 add_subdirectory(cpp/cls_resnet)
 add_subdirectory(cpp/det_mtcnn)
 add_subdirectory(cpp/det_yolov3)

@@ -14,6 +14,7 @@ You may obtain a copy of the License at
 """
 import cv2
 import sys
+import os
 import argparse
 import numpy as np
 from sophon import sail
@@ -139,11 +140,12 @@ def run_onet(engine, preprocessor, postprocessor, boxes, image):
   print("Box number detected by ONet: {}".format(boxes_num));
   return boxes
 
-def print_result(boxes):
+def print_result(boxes, tpu_id):
   """ Print bounding boxes of detected faces.
 
   Args:
     boxes: Detected bounding boxes
+    tpu_id: TPU ID
 
   Returns:
     None
@@ -151,7 +153,7 @@ def print_result(boxes):
   if boxes is None or len(boxes) == 0:
     print("No face was detected in this image!");
     return
-  print("------------  MTCNN DETECTION RESULT  ------------");
+  print("---------  MTCNN DETECTION RESULT ON TPU {} ---------".format(tpu_id));
   message = "Face {} Box: [{}, {}, {}, {}], Score: {:.6f}"
   for i in range(boxes.shape[0]):
     x = int(boxes[i, 1]) if boxes[i, 1] > 0 else 0
@@ -195,7 +197,7 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
         boxes = run_onet(engine, preprocessor, postprocessor, boxes, image)
     # print detected result
     if postprocessor.compare(reference, boxes, i):
-      print_result(boxes)
+      print_result(boxes, tpu_id)
     else:
       status = False
       break
@@ -215,6 +217,9 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   status = inference(ARGS.bmodel, ARGS.input, \
                      ARGS.loops, ARGS.tpu_id, ARGS.compare)
   sys.exit(0 if status else -1)

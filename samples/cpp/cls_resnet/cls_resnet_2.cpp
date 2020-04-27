@@ -136,8 +136,9 @@ void thread_infer(
     auto result = postprocessor.process(output);
     // print result
     for (auto item : result) {
-      spdlog::info("Top 5 for graph {} of loop {} in thread {}: [{}]",
-                   graph_name, i, thread_id, fmt::join(item, ", "));
+      spdlog::info("Top 5 for {} of loop {} in thread {} on tpu {}: [{}]",
+                   graph_name, i, thread_id, engine->get_device_id(),
+                   fmt::join(item, ", "));
       if(!postprocessor.compare(reference, item,
           (out_dtype == BM_FLOAT32) ? "fp32" : "int8")) {
         flag = false;
@@ -170,13 +171,15 @@ int main(int argc, char** argv) {
     {"input", required_argument, nullptr, 'i'},
     {"tpu_id", required_argument, nullptr, 't'},
     {"loops", required_argument, nullptr, 'l'},
-    {"compare", required_argument, nullptr, 'c'}
+    {"compare", required_argument, nullptr, 'c'},
+    {0, 0, 0, 0}
   };
   std::vector<std::string> bmodel_paths;
   std::string input_path;
   int tpu_id = 0;
   int loops = 1;
   std::string compare_path;
+  bool flag = false;
   while (1) {
     int c = getopt_long(argc, argv, opt_strings, long_opts, nullptr);
     if (c == -1) {
@@ -198,14 +201,21 @@ int main(int argc, char** argv) {
       case 'c':
         compare_path = optarg;
         break;
+      case '?':
+        flag = true;
+        break;
     }
   }
-  if (bmodel_paths.empty() || input_path.empty()) {
+  if (flag || bmodel_paths.empty() || input_path.empty()) {
     std::string usage("Usage: {} --bmodel bmodel_path [--bmodel bmodel_path]");
-    usage += ("... --input input_path");
+    usage += ("... [--tpu_id tpu_id(default:0)] --input input_path");
     usage += " [--loops loops_num(default:1)] [--compare verify.ini]";
     spdlog::info(usage.c_str(), argv[0]);
     return -1;
+  }
+  if (!file_exists(input_path)) {
+    spdlog::error("File not exists: {}", input_path);
+    return -2;
   }
   // init Engine
   sail::Engine engine(tpu_id);

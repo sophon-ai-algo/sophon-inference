@@ -17,10 +17,15 @@ You may obtain a copy of the License at
 #include <algorithm>
 #include <numeric>
 #include <algorithm>
+#include <fstream>
 #include "inireader.hpp"
 #include "spdlog/spdlog.h"
 #include "processor.h"
-#include <iostream>
+
+bool file_exists(const std::string& file_path) {
+  std::ifstream f(file_path.c_str());
+  return f.good();
+}
 
 PreProcessor::PreProcessor(
     int   height,

@@ -230,13 +230,14 @@ std::vector<FaceInfo> run_onet(
  * @brief Print result of detection
  *
  * @param faceinfos Detected boxes
+ * @param tpu_id    TPU ID
  */
-void print_result(std::vector<FaceInfo>& faceinfos) {
+void print_result(std::vector<FaceInfo>& faceinfos, int tpu_id) {
   if (faceinfos.size() == 0) {
     spdlog::error("No face was detected in this image!");
     return;
   }
-  spdlog::info("------------  MTCNN DETECTION RESULT  ------------");
+  spdlog::info("---------  MTCNN DETECTION RESULT ON TPU {} ---------", tpu_id);
   for (size_t i = 0; i < faceinfos.size(); i++) {
     cv::Rect rc;
     rc.x = (faceinfos[i].bbox.x1) > 0 ? faceinfos[i].bbox.x1 : 0;
@@ -290,7 +291,7 @@ bool det_mtcnn(
     }
     // print_result
     if (postprocessor.compare(reference, boxes)) {
-      print_result(boxes);
+      print_result(boxes, tpu_id);
     } else {
       status = false;
       break;
@@ -307,13 +308,15 @@ int main(int argc, char** argv) {
     {"input", required_argument, nullptr, 'i'},
     {"tpu_id", required_argument, nullptr, 't'},
     {"loops", required_argument, nullptr, 'l'},
-    {"compare", required_argument, nullptr, 'c'}
+    {"compare", required_argument, nullptr, 'c'},
+    {0, 0, 0, 0}
   };
   std::string bmodel_path;
   std::string input_path;
   int tpu_id = 0;
   int loops = 1;
   std::string compare_path;
+  bool flag = false;
   while (1) {
     int c = getopt_long(argc, argv, opt_strings, long_opts, nullptr);
     if (c == -1) {
@@ -335,14 +338,22 @@ int main(int argc, char** argv) {
       case 'c':
         compare_path = optarg;
         break;
+      case '?':
+        flag = true;
+        break;
     }
   }
-  if (bmodel_path.empty() || input_path.empty() || tpu_id < 0 || loops <= 0) {
+  if (flag || bmodel_path.empty() || input_path.empty() ||
+      tpu_id < 0 || loops <= 0) {
     std::string usage("Usage: {} --bmodel bmodel_path --input input_path");
     usage += " [--tpu_id tpu_id(default:0)] [--loops loops_num(default:1)]";
     usage += " [--compare verify.ini]";
     spdlog::info(usage.c_str(), argv[0]);
     return -1;
+  }
+  if (!file_exists(input_path)) {
+    spdlog::error("File not exists: {}", input_path);
+    return -2;
   }
   // load bmodel and do inference
   bool status = det_mtcnn(bmodel_path, input_path, tpu_id, loops, compare_path);

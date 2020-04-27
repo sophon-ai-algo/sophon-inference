@@ -13,6 +13,7 @@ You may obtain a copy of the License at
  limitations under the License.
 """
 import sys
+import os
 import argparse
 import json
 import numpy as np
@@ -174,7 +175,11 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
   # pipeline of inference
   for i in range(loops):
     # read an image from a image file or a video file
-    img0 = decoder.read(handle)
+    img0 = sail.BMImage()
+    ret = decoder.read(handle, img0)
+    if ret != 0:
+      print("Finished to read the video!");
+      break
     # preprocess
     img1 = sail.BMImage(handle, input_shape[2], input_shape[3], \
                         sail.Format.FORMAT_BGR_PLANAR, img_dtype)
@@ -189,8 +194,9 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
     # print result
     if postprocessor.compare(reference, dets, i):
       for (class_id, score, x0, y0, x1, y1) in dets:
-        message = '[Frame{}] Category: {}, Score: {:.3f}, Box: [{}, {}, {}, {}]'
-        print(message.format(i + 1, class_id, score, x0, y0, x1, y1))
+        message = '[Frame {} on tpu {}] Category: {}, Score: {:.3f},'
+        message += ' Box: [{}, {}, {}, {}]'
+        print(message.format(i + 1, tpu_id, class_id, score, x0, y0, x1, y1))
         bmcv.rectangle(img0, x0, y0, x1 - x0 + 1, y1 - y0 + 1, (255, 0, 0), 3)
       bmcv.imwrite('result-{}.jpg'.format(i + 1), img0)
     else:
@@ -209,6 +215,9 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   status = inference(ARGS.bmodel, ARGS.input, \
                      ARGS.loops, ARGS.tpu_id, ARGS.compare)
   sys.exit(0 if status else -1)

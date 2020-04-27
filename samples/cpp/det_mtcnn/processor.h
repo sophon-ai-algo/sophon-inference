@@ -21,6 +21,14 @@ You may obtain a copy of the License at
 #include <opencv2/core/core.hpp>
 
 /**
+ * @brief Judge if a file exists..
+ *
+ * @param file_path Path to the file
+ * @return True for exist, false for not.
+ */
+bool file_exists(const std::string& file_path);
+
+/**
  * @brief Information of face bounding box.
  */
 typedef struct FaceRect {

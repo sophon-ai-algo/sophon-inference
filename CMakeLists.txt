@@ -58,6 +58,7 @@ if(USE_PCIE)
     if(USE_BMNNSDK2)
       set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/BMNNSDK2_BM1684_ARM_PCIE)
     endif()
+    add_definitions(-DUSE_BMCV)
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
     set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/BM1684_PCIE)
@@ -98,6 +99,18 @@ endif()
 if(WITH_TEST)
   add_subdirectory(tests)
   enable_testing()
+endif()
+
+# use "make cpp" to build all pure cpp targets
+# use "make pysail" to build lib for python3
+if(USE_FFMPEG)
+  if(NOT USE_PCIE)
+    add_custom_target(cpp DEPENDS sail cls_resnet_0 cls_resnet_1 cls_resnet_2 cls_resnet_3 det_mtcnn det_ssd_0 det_ssd_1 det_ssd_2 det_ssd_3 det_ssd_4 det_yolov3_0 det_yolov3_1)
+  else()
+    add_custom_target(cpp DEPENDS sail cls_resnet_0 cls_resnet_1 cls_resnet_2 cls_resnet_3 det_mtcnn det_ssd_0 det_ssd_1 det_ssd_2 det_yolov3_0 det_yolov3_1)
+  endif()
+else()
+  add_custom_target(cpp DEPENDS sail cls_resnet_0 cls_resnet_1 cls_resnet_2 cls_resnet_3 det_mtcnn det_ssd_0 det_yolov3_0)
 endif()
 
 # Add doc

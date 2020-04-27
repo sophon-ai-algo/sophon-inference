@@ -140,6 +140,13 @@ class Engine {
   Handle& get_handle();
 
   /**
+   * @brief Get device id of this engine..
+   *
+   * @return Device id.
+   */
+  int get_device_id();
+
+  /**
    * @brief Load bmodel from file.
    *
    * @param bmodel_path Path to bmodel

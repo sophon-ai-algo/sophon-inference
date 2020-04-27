@@ -96,7 +96,7 @@ bool inference(
     auto result = postprocessor.process(output);
     // print result
     for (auto item : result) {
-      spdlog::info("Top 5 of loop {}: [{}]", i, fmt::join(item, ", "));
+      spdlog::info("Top 5 of loop {} on tpu {}: [{}]", i, tpu_id, fmt::join(item, ", "));
       if(!postprocessor.compare(reference, item,
           (out_dtype == BM_FLOAT32) ? "fp32" : "int8")) {
         status = false;
@@ -125,13 +125,15 @@ int main(int argc, char** argv) {
     {"input", required_argument, nullptr, 'i'},
     {"tpu_id", required_argument, nullptr, 't'},
     {"loops", required_argument, nullptr, 'l'},
-    {"compare", required_argument, nullptr, 'c'}
+    {"compare", required_argument, nullptr, 'c'},
+    {0, 0, 0, 0}
   };
   std::string bmodel_path;
   std::string input_path;
   int tpu_id = 0;
   int loops = 1;
   std::string compare_path;
+  bool flag = false;
   while (1) {
     int c = getopt_long(argc, argv, opt_strings, long_opts, nullptr);
     if (c == -1) {
@@ -153,14 +155,22 @@ int main(int argc, char** argv) {
       case 'c':
         compare_path = optarg;
         break;
+      case '?':
+        flag = true;
+        break;
     }
   }
-  if (bmodel_path.empty() || input_path.empty() || tpu_id < 0 || loops <= 0) {
+  if (flag || bmodel_path.empty() || input_path.empty() ||
+      tpu_id < 0 || loops <= 0) {
     std::string usage("Usage: {} --bmodel bmodel_path --input input_path");
     usage += " [--tpu_id tpu_id(default:0)] [--loops loops_num(default:1)]";
     usage += " [--compare verify.ini]";
     spdlog::info(usage.c_str(), argv[0]);
     return -1;
+  }
+  if (!file_exists(input_path)) {
+    spdlog::error("File not exists: {}", input_path);
+    return -2;
   }
   // load bmodel and do inference
   bool status = inference(bmodel_path, input_path, tpu_id, loops, compare_path);

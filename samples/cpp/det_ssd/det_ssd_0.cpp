@@ -111,6 +111,7 @@ bool inference(
     // read an image from a image file or a video file
     cv::Mat frame;
     if (!decoder->read(frame)) {
+      spdlog::info("Finished to read the video!");
       break;
     }
     // preprocess
@@ -125,16 +126,16 @@ bool inference(
     std::vector<DetectRect> dets;
     postprocessor.process(dets, output_data, real_output_shape,
                           frame.cols, frame.rows);
+    // print result
     if (postprocessor.compare(reference, dets, i)) {
-      // print result
-      std::string message("[Frame {}] Category: {}, Score: {:03.3f}, ");
-      message += "Box: [{}, {}, {}, {}]";
+      std::string message("[Frame {} on tpu {}] Category: {}, Score: {:03.3f}");
+      message += ", Box: [{}, {}, {}, {}]";
       for (auto rect : dets) {
         int x0 = rect.x1;
         int x1 = rect.x2;
         int y0 = rect.y1;
         int y1 = rect.y2;
-        spdlog::info(message.c_str(), i + 1, rect.class_id,
+        spdlog::info(message.c_str(), i + 1, tpu_id, rect.class_id,
                      rect.score, x0, y0, x1, y1);
         int w = x1 - x0 + 1;
         int h = y1 - y0 + 1;
@@ -161,13 +162,15 @@ int main(int argc, char *argv[]) {
     {"input", required_argument, nullptr, 'i'},
     {"tpu_id", required_argument, nullptr, 't'},
     {"loops", required_argument, nullptr, 'l'},
-    {"compare", required_argument, nullptr, 'c'}
+    {"compare", required_argument, nullptr, 'c'},
+    {0, 0, 0, 0}
   };
   std::string bmodel_path;
   std::string input_path;
   int tpu_id = 0;
   int loops = 1;
   std::string compare_path;
+  bool flag = false;
   while (1) {
     int c = getopt_long(argc, argv, opt_strings, long_opts, nullptr);
     if (c == -1) {
@@ -189,14 +192,22 @@ int main(int argc, char *argv[]) {
       case 'c':
         compare_path = optarg;
         break;
+      case '?':
+        flag = true;
+        break;
     }
   }
-  if (bmodel_path.empty() || input_path.empty() || tpu_id < 0 || loops <= 0) {
+  if (flag || bmodel_path.empty() || input_path.empty() ||
+      tpu_id < 0 || loops <= 0) {
     std::string usage("Usage: {} --bmodel bmodel_path --input input_path");
     usage += " [--tpu_id tpu_id(default:0)] [--loops loops_num(default:1)]";
     usage += " [--compare verify.ini]";
     spdlog::info(usage.c_str(), argv[0]);
     return -1;
+  }
+  if (!file_exists(input_path)) {
+    spdlog::error("File not exists: {}", input_path);
+    return -2;
   }
   // load bmodel and do inference
   bool status = inference(bmodel_path, input_path, tpu_id, loops, compare_path);

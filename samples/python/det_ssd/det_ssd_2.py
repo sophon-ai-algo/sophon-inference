@@ -13,6 +13,7 @@ You may obtain a copy of the License at
  limitations under the License.
 """
 import sys
+import os
 import argparse
 import collections
 import json
@@ -183,8 +184,15 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
     imgs_1 = sail.BMImageArray4D(handle, input_shape[2], input_shape[3], \
                                  sail.Format.FORMAT_BGR_PLANAR, img_dtype)
     # read 4 frames from input video for batch size is 4
+    flag = False
     for j in range(4):
-      imgs_0[j] = decoder.read_(handle)
+      ret = decoder.read_(handle, imgs_0[j])
+      if ret != 0:
+        print("Finished to read the video!");
+        flag = True
+        break
+    if flag:
+      break
     # preprocess
     preprocessor.process(imgs_0, imgs_1)
     bmcv.bm_image_to_tensor(imgs_1, input)
@@ -200,8 +208,9 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
         frame_id = int(i * 4 + j + 1)
         img0 = sail.BMImage(imgs_0[j])
         for class_id, score, x0, y0, x1, y1 in vals:
-          msg = '[Frame{}] Category: {}, Score: {:.3f}, Box: [{}, {}, {}, {}]'
-          print(msg.format(frame_id, class_id, score, x0, y0, x1, y1))
+          msg = '[Frame {} on tpu {}] Category: {}, Score: {:.3f},'
+          msg += ' Box: [{}, {}, {}, {}]'
+          print(msg.format(frame_id, tpu_id, class_id, score, x0, y0, x1, y1))
           bmcv.rectangle(img0, x0, y0, x1 - x0 + 1, y1 - y0 + 1, (255, 0, 0), 3)
         bmcv.imwrite('result-{}.jpg'.format(frame_id), img0)
     else:
@@ -221,6 +230,9 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
+  if not os.path.isfile(ARGS.input):
+    print("Error: {} not exists!".format(ARGS.input))
+    sys.exit(-2)
   status = inference(ARGS.bmodel, ARGS.input, \
                      ARGS.loops, ARGS.tpu_id, ARGS.compare)
   sys.exit(0 if status else -1)
