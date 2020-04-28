@@ -55,7 +55,8 @@ def download_model_with_version(base_url, save_dir, name, version):
 def main():
   """Program entry point.
   """
-  base_url = 'https://sophon-file.bitmain.com.cn/sophon-prod/model/19/12/05/'
+  base_url = 'https://sophon-file.sophon.cn/sophon-prod/model/19/12/05/'
+  #base_url = 'https://sophon-file.bitmain.com.cn/sophon-prod/model/19/12/05/'
   #base_url = 'http://10.30.34.184:8080/sophon_model/version_test'
   save_dir = FLAGS.save_path
   version = FLAGS.version
