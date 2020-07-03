@@ -68,7 +68,7 @@ static void registerBMImageArrayFunctions(py::class_<Bmcv> &cls) {
 
 PYBIND11_MODULE(sail, m) {
   using namespace pybind11::literals;
-  m.attr("__version__") = "2.0.3";
+  m.attr("__version__") = "2.1.0";
   m.doc() = "sophon inference module";
 
   m.def("get_available_tpu_num", &get_available_tpu_num);

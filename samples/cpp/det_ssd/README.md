@@ -76,6 +76,10 @@ python3 ./download.py det.h264
 * A SSD example using opencv to decode and preprocess.
 
 ```shell
+# usage: det_ssd_0 --bmodel BMODEL_PATH --input INPUT_PATH
+#                  [--loops LOOPS_NUMBER(default:1)]
+#                  [--tpu_id TPU_ID(default:0)]
+#                  [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel with input of image
 ./det_ssd_0 --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1
 # run int8 bmodel with input of video
@@ -85,6 +89,10 @@ python3 ./download.py det.h264
 * A SSD example using bm-ffmpeg to decode and using bmcv to preprocess.
 
 ```shell
+# usage: det_ssd_1 --bmodel BMODEL_PATH --input INPUT_PATH
+#                  [--loops LOOPS_NUMBER(default:1)]
+#                  [--tpu_id TPU_ID(default:0)]
+#                  [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel with input of image
 ./det_ssd_1 --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1
 # run int8 bmodel with input of video
@@ -110,6 +118,10 @@ python3 ./download.py det.h264
 * A SSD example using bm-opencv to decode and using bmcv to preprocess, only for soc mode.
 
 ```shell
+# usage: det_ssd_2 --bmodel BMODEL_PATH --input INPUT_PATH
+#                  [--loops LOOPS_NUMBER(default:1)]
+#                  [--tpu_id TPU_ID(default:0)]
+#                  [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel with input of image
 ./det_ssd_4 --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1
 # run int8 bmodel with input of video

@@ -166,15 +166,13 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
   graph_name = net.get_graph_names()[0]
   input_name = net.get_input_names(graph_name)[0]
   reference = get_reference(compare_path)
-  loop = 0
   status = True
   # pipeline of inference
-  while cap.isOpened():
+  for i in range(loops):
     # read an image
     ret, img = cap.read()
     if not ret:
-      break
-    if loop >= loops:
+      print("Finished to read the video!");
       break
     # preprocess
     data = preprocess(img, detected_size)
@@ -183,14 +181,13 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
     # postprocess
     bboxes, classes, probs = postprocess(output, img, detected_size, threshold)
     # print result
-    if compare(reference, bboxes, classes, probs, loop):
+    if compare(reference, bboxes, classes, probs, i):
       for bbox, cls, prob in zip(bboxes, classes, probs):
-        print("[tpu {}] Category: {}, Score: {:.3f}, Box: {}".format(\
-            tpu_id, cls, prob, bbox))
+        message = "[Frame {} on tpu {}] Category: {}, Score: {:.3f}, Box: {}"
+        print(message.format(i + 1, tpu_id, cls, prob, bbox))
     else:
       status = False
       break
-    loop += 1
   cap.release()
   return status
 

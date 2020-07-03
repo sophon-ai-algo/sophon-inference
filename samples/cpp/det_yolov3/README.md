@@ -57,21 +57,32 @@ bm_model.bin --info yolov3_int8.bmodel
 python3 ./download.py det.h264
 ```
 
-## Execution
+## Run Examples
 
-* opencv+sail
-
-```shell
-./det_yolov3_0 --bmodel  INPUT_BMODEL_FILE \
-               --input   INPUT_VIDEO_SRC \
-               --threads THREAD_NUMBER
-```
-
-* ffmpeg+bmcv+sail
+* A Yolov3 example using opencv to decode and preprocess.
 
 ```shell
-./det_yolov3_1 --bmodel  INPUT_BMODEL_FILE \
-               --input   INPUT_VIDEO_SRC \
-               --threads THREAD_NUMBER
+# usage: det_yolov3_0 --bmodel BMODEL_PATH --input INPUT_PATH
+#                     [--threads THREADS_NUMBER(default:2)]
+#                     [--loops LOOPS_NUMBER(default:1)]
+#                     [--tpu_id TPU_ID(default:0)]
+#                     [--compare COMPARE_FILE_PATH]
+# run fp32 bmodel
+./det_yolov3_0 --bmodel ./yolov3_fp32.bmodel --input ./det.h264
+# run int8 bmodel
+./det_yolov3_0 --bmodel ./yolov3_int8.bmodel --input ./det.h264
 ```
 
+* A Yolov3 example using bm-ffmpeg to decode and using bmcv to preprocess.
+
+```shell
+# usage: det_yolov3_1 --bmodel BMODEL_PATH --input INPUT_PATH
+#                     [--threads THREADS_NUMBER(default:2)]
+#                     [--loops LOOPS_NUMBER(default:1)]
+#                     [--tpu_id TPU_ID(default:0)]
+#                     [--compare COMPARE_FILE_PATH]
+# run fp32 bmodel
+./det_yolov3_1 --bmodel ./yolov3_fp32.bmodel --input ./det.h264
+# run int8 bmodel
+./det_yolov3_1 --bmodel ./yolov3_int8.bmodel --input ./det.h264
+```

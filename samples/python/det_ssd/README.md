@@ -74,24 +74,36 @@ python3 ./download.py det.h264
 * A SSD example using opencv to decode and using opencv to preprocess, with batch size is 1.
 
 ```shell
+# usage: python3 det_ssd_0.py [-h] --bmodel BMODEL_PATH --input INPUT_PATH
+#                             [--loops LOOPS_NUMBER(default:1)]
+#                             [--tpu_id TPU_ID(default:0)]
+#                             [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel with input of image
-python3 ./det_ssd_0.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1 --tpu_id 0 --compare verify_det_jpg_fp32_0.json
+python3 ./det_ssd_0.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg
 # run int8 bmodel with input of video
-python3 ./det_ssd_0.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare verify_det_h264_int8_0.json
+python3 ./det_ssd_0.py --bmodel ./ssd_int8.bmodel --input ./det.h264
 ```
 
 * A SSD example using bm-ffmpeg to decode and using bmcv to preprocess, with batch size is 1.
 
 ```shell
+# usage: python3 det_ssd_1.py [-h] --bmodel BMODEL_PATH --input INPUT_PATH
+#                             [--loops LOOPS_NUMBER(default:1)]
+#                             [--tpu_id TPU_ID(default:0)]
+#                             [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel with input of image
-python3 ./det_ssd_1.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1 --tpu_id 0 --compare verify_det_jpg_fp32_1.json
+python3 ./det_ssd_1.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg
 # run int8 bmodel with input of video
-python3 ./det_ssd_1.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare verify_det_h264_int8_0.json
+python3 ./det_ssd_1.py --bmodel ./ssd_int8.bmodel --input ./det.h264
 ```
 
 * A SSD example with batch size is 4 for acceleration of int8 model, using bm-ffmpeg to decode and using bmcv to preprocess.
 
 ```shell
+# usage: python3 det_ssd_2.py [-h] --bmodel BMODEL_PATH --input INPUT_PATH
+#                             [--loops LOOPS_NUMBER(default:1)]
+#                             [--tpu_id TPU_ID(default:0)]
+#                             [--compare COMPARE_FILE_PATH]
 # run int8 bmodel with input of video
-python3 ./det_ssd_2.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare verify_det_h264_int8_2.json
+python3 ./det_ssd_2.py --bmodel ./ssd_int8.bmodel --input ./det.h264
 ```

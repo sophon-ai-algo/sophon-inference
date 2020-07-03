@@ -60,13 +60,15 @@ bm_model.bin --info yolov3_int8.bmodel
 python3 ./download.py det.h264
 ```
 
-## Execution
+## Run Examples
 
 ```shell
-python3 det_yolov3.py \
-  --bmodel bmodel_path(fp32|int8)
-  --input video_path
-  --loops 1
-  --tpu_id 0
-  --compare verify_yolov3_(fp32|int8).json
+# usage: python3 det_yolov3.py [-h] --bmodel BMODEL_PATH --input INPUT_PATH
+#                              [--loops LOOPS_NUMBER(default:1)]
+#                              [--tpu_id TPU_ID(default:0)]
+#                              [--compare COMPARE_FILE_PATH]
+# run fp32 bmodel with input of image
+python3 ./det_yolov3.py --bmodel ./yolov3_fp32.bmodel --input ./det.h264
+# run int8 bmodel with input of video
+python3 ./det_yolov3.py --bmodel ./yolov3_int8.bmodel --input ./det.h264
 ```

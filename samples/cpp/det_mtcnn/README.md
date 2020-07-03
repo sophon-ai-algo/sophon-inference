@@ -62,5 +62,9 @@ python3 ./download.py face.jpg
 ## Run Examples
 
 ```shell
+# usage: det_mtcnn --bmodel BMODEL_PATH --input INPUT_PATH
+#                  [--loops LOOPS_NUMBER(default:1)]
+#                  [--tpu_id TPU_ID(default:0)]
+#                  [--compare COMPARE_FILE_PATH]
 ./det_mtcnn --bmodel ./mtcnn_fp32.bmodel --input ./face.jpg
 ```

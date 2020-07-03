@@ -28,7 +28,7 @@ if os.path.exists(AARCH64_PATH):
                       'sophon.algokit.engine', 'sophon.algokit.libs',
                       'sophon.algokit.libs.extend_layer', 'sophon.algokit.utils']
   setup(name='sophon_arm',
-        version='2.0.3',
+        version='2.1.0',
         description='Inference samples for deep learning on Sophon products.',
         author='Sophon algorithm team',
         author_email='hong.liu@bitmain.com',

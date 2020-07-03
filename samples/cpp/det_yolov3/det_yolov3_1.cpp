@@ -74,9 +74,12 @@ void thread_infer(
   int dev_id = engine->get_device_id();
   FFMpegFrameProvider frame_provider(bmcv, input_path, dev_id);
   sail::BMImage img0, img1;
-  int i = 0;
   bool flag = true;
-  while (!frame_provider.get(img0)) {
+  for (int i = 0; i < loops; ++i) {
+    if (frame_provider.get(img0)) {
+      spdlog::info("Finished to read the video!");
+      break;
+    }
     int height = img0.height();
     int width = img0.width();
     img1 = bmcv.tensor_to_bm_image(in, true); // true -> bgr2rgb
@@ -104,15 +107,11 @@ void thread_infer(
         rc.y = item.y1;
         rc.width = item.x2 - item.x1;
         rc.height = item.y2 - item.y1;
-        spdlog::info(message.c_str(), thread_id, dev_id, i, item.class_id,
+        spdlog::info(message.c_str(), thread_id, dev_id, i + 1, item.class_id,
                      item.score, rc.x, rc.y, rc.width, rc.height);
       }
     } else {
       flag = false;
-      break;
-    }
-    ++i;
-    if (i == loops) {
       break;
     }
   }

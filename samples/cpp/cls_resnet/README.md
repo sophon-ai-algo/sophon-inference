@@ -62,6 +62,10 @@ python3 ./download.py cls.jpg
 * The simplest case for inference of one model on one TPU.
 
 ```shell
+# usage: cls_resnet_0 --bmodel BMODEL_PATH --input INPUT_PATH
+#                     [--loops LOOPS_NUMBER(default:1)]
+#                     [--tpu_id TPU_ID(default:0)]
+#                     [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel
 ./cls_resnet_0 --bmodel ./resnet50_fp32.bmodel --input ./cls.jpg
 # run int8 bmodel
@@ -71,6 +75,11 @@ python3 ./download.py cls.jpg
 * Inference of one model by multiple threads on one TPU.
 
 ```shell
+# usage: cls_resnet_1 --bmodel BMODEL_PATH --input INPUT_PATH
+#                     [--threads THREADS_NUMBER(default:2)]
+#                     [--loops LOOPS_NUMBER(default:1)]
+#                     [--tpu_id TPU_ID(default:0)]
+#                     [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel
 ./cls_resnet_1 --bmodel ./resnet50_fp32.bmodel --input ./cls.jpg --threads 2
 # run int8 bmodel
@@ -79,12 +88,21 @@ python3 ./download.py cls.jpg
 
 * Inference of two models in two threads on one TPU.
 ```shell
+# usage: cls_resnet_2 --bmodel BMODEL_PATH [--bmodel BMODEL_PATH]...
+#                     --input INPUT_PATH
+#                     [--loops LOOPS_NUMBER(default:1)]
+#                     [--tpu_id TPU_ID(default:0)]
+#                     [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel and int8 bmodel in two threads
 ./cls_resnet_2 --bmodel ./resnet50_fp32.bmodel --bmodel ./resnet50_int8.bmodel --input ./cls.jpg
 ```
 
 * Inference of one model on multiple TPUs.
 ```shell
+# usage: cls_resnet_3 --bmodel BMODEL_PATH --input INPUT_PATH
+#                     --tpu_id TPU_ID [--tpu_id TPU_ID]...
+#                     [--loops LOOPS_NUMBER(default:1)]
+#                     [--compare COMPARE_FILE_PATH]
 # run fp32 bmodel
 ./cls_resnet_3 --bmodel ./resnet50_fp32.bmodel --input ./cls.jpg --tpu_id 0 --tpu_id 1
 # run int8 bmodel

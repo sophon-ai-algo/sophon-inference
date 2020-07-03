@@ -17,30 +17,27 @@ Guide to deploying deep-learning inference networks and deep vision primitives o
 * Provide both C++ and Python APIs;
 * Automatically manage memory of tensors;
 
-## Running in Docker
-```shell
-# get the docker image
-docker pull sophonai/sophon-inference:sc3-1.1.2-a
-
-# create docker container
-# you can refer "samples/*/README.md" to enjoy the C++ and python samples.
-docker run -it --device /dev/bm1682-dev0 --device /dev/bmdev-ctl --rm sophonai/sophon-inference:sc3-1.1.2-a
 ```
-
 ## Prerequisites and Compilation
 
-- **BMNNSDK2**        Required
-- **CMake**           Required
-- **OpenCV**          Required for C++ samples
-- **Python3**         Optional for python samples
-- **Sphinx**          Optional for documents
+- **BMNNSDK2**                        Required
+- **CMake**                           Required
+- **OpenCV3(at least 3.4.6)**         Required for C++ samples
+- **Python3**                         Optional for python samples
+- **Sphinx**                          Optional for documents
 
 ```shell
-# tools/install.sh to automatically install the 3rd libs.
-cd tools
-bash install.sh
+# install bmnnsdk2
+cd bmnnsdk2/scripts
+# extract libs adaptable to the OS
+./install_lib.sh nntc
+# remove old driver and install the new one, 'pcie' for x86_64 and 'arm_pcie' for aarch64
+sudo ./remove_driver_pcie.sh      # for x86_64
+sudo ./uninstall_driver_pcie.sh   # for x86_64
+# configure the environment. 'pcie' for x86_64 and 'arm_pcie' for aarch64
+source ./envsetup_pcie.sh         # for x86_64
 
-# compilation, please set configurations in ./CMakeLists.txt before the following commands.
+# compilation
 mkdir build
 cd build
 cmake ..
@@ -92,10 +89,9 @@ ID|Input|Decoder|Preprocessor|Data Type|Model|Mode
 
 [PDF Chinese doc](docs/Sophon_Inference_zh.pdf)
 
-
 ## Testing
 
-To do.
+Result files of each examples to compare are in directories: ./release/qa_test/sc5_tests/cpp_OR_python/CASE_NAME/verify_files/
 
 ## FAQ
 [FAQ link](docs/FAQ.md)
@@ -110,9 +106,9 @@ Please read CONTRIBUTING.md for details on our code of conduct, and the process 
 * hong.liu      - Initial work
 * juntao.tong   - Initial work
 * lian.he       - Initial work
+* mike.wu       - Initial work
 * tong.liu      - Initial work
 * zhenpeng.xiao - Initial work
-* mike.wu       - Initial work
 
 See also the list of [Contributors](CODEOWNERS) who participated in this project.
 
@@ -121,7 +117,6 @@ See also the list of [Contributors](CODEOWNERS) who participated in this project
 This project contains codes written in C++, Python and Shell. We refer to Google Style Guides with some minor modifications.
 
 [Coding Style Guide](docs/CODING_STYLE_GUIDE.md)
-
 
 ## License
 

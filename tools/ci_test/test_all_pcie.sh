@@ -8,7 +8,7 @@ function judge_ret() {
     echo "Failed: $2"
     exit 1
   fi
-  sleep 1
+  sleep 5
 }
 
 function cpp_test() {

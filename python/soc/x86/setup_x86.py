@@ -14,7 +14,7 @@ PACKAGES_X86 = ['sophon', 'sophon.auto_split', 'sophon.auto_split.common',
 
 # wrap sophon python module
 setup(name='sophon_x86',
-      version='2.0.3',
+      version='2.1.0',
       description='Inference samples for deep learning on Sophon products.',
       author='Sophon algorithm team',
       author_email='hong.liu@bitmain.com',

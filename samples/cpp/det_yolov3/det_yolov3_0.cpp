@@ -76,10 +76,13 @@ void thread_infer(
   PostProcessor postprocessor(0.5);
   auto reference = postprocessor.get_reference(compare_path);
   cv::VideoCapture cap(input_path);
-  cv::Mat frame;
-  int i = 0;
   bool flag = true;
-  while (cap.read(frame)) {
+  for (int i = 0; i < loops; ++i) {
+    cv::Mat frame;
+    if (!cap.read(frame)) {
+      spdlog::info("Finished to read the video!");
+      break;
+    }
     cv::Mat frame_show;
     frame.copyTo(frame_show);
     preprocessor.processv2(input, frame);
@@ -126,15 +129,11 @@ void thread_infer(
         rc.y = it.y1;
         rc.width = it.x2 - it.x1;
         rc.height = it.y2 - it.y1;
-        spdlog::info(message.c_str(), thread_id, engine->get_device_id(), i,
+        spdlog::info(message.c_str(), thread_id, engine->get_device_id(), i + 1,
                      it.class_id, it.score, rc.x, rc.y, rc.width, rc.height);
       }
     } else {
       flag = false;
-      break;
-    }
-    ++i;
-    if (i == loops) {
       break;
     }
   }

@@ -3,7 +3,7 @@
 ```shell
 sc5_tests
 ├── cmake                    # BMNNSDK2 should be installed and sourced envsetup.sh
-│   └── FindBMNNSDK2.cmake  # find dependences to build C++ examples
+│   └── FindBMNNSDK2.cmake   # find dependences to build C++ examples
 ├── CMakeLists.txt
 ├── cpp                      # cpp examples source code
 │   ├── cls_resnet
@@ -89,6 +89,10 @@ pip3 install ../lib/sail/python3/arm_pcie//py3x/sophon-2.0.3-py3-none-any.whl --
 ```shell
 # you can modify the script to add tests
 # c++ readmes: cpp/CASE_NAME/README.md
+# notes: Opencv 3(at least 3.4.6) is required for C++ compilation
+#
 # python readmes: python/CASE_NAME/README.md
+# notes: python module: cv2,numpy,six,json are required
+
 ./auto_test.sh
 ```
