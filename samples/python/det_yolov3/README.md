@@ -67,7 +67,7 @@ python3 ./download.py det.h264
 #                              [--loops LOOPS_NUMBER(default:1)]
 #                              [--tpu_id TPU_ID(default:0)]
 #                              [--compare COMPARE_FILE_PATH]
-# run fp32 bmodel with input of image
+# run fp32 bmodel with input of video
 python3 ./det_yolov3.py --bmodel ./yolov3_fp32.bmodel --input ./det.h264
 # run int8 bmodel with input of video
 python3 ./det_yolov3.py --bmodel ./yolov3_int8.bmodel --input ./det.h264
