@@ -38,10 +38,9 @@ sudo ./uninstall_driver_pcie.sh   # for x86_64
 source ./envsetup_pcie.sh         # for x86_64
 
 # compilation
-mkdir build
-cd build
-cmake ..
-make
+1. change python configuration from compile.sh.
+2. ./compile.sh
+
 ```
 
 ## Samples
@@ -80,10 +79,6 @@ ID|Input|Decoder|Preprocessor|Data Type|Model|Mode
 [Python Samples Usage Instructions](samples/python/README.md)
 
 ## Documnets
-
-[Online English doc](https://sophon-ai-algo.github.io/sophon-inference-doc_en/)
-
-[Online Chinese doc](https://sophon-ai-algo.github.io/sophon-inference-doc_zh/)
 
 [PDF English doc](docs/Sophon_Inference_en.pdf)
 
