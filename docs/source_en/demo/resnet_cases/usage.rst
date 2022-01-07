@@ -14,7 +14,9 @@ Get model and data
            python3 download.py resnet50_fp32.bmodel 
            python3 download.py resnet50_int8.bmodel
            python3 download.py cls.jpg
-
+    .. note::
+        pls get the download.py from sdk/examples/sail/se5_tests/scripts/ 
+        or sdk/examples/sail/sc5_tests/
 Run C++ cases
 ^^^^^^^^^^^^^
 
@@ -26,7 +28,7 @@ Run C++ cases
            ./cls_resnet_0 --bmodel ./resnet50_fp32.bmodel --input ./cls.jpg
 
            # run int8 bmodel
-           ./cls_resnet_0 --bmodel ./resnet50_fp32.bmodel --input ./cls.jpg
+           ./cls_resnet_0 --bmodel ./resnet50_int8.bmodel --input ./cls.jpg
 
 
     For case 1:

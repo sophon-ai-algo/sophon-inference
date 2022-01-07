@@ -39,9 +39,13 @@ PACKAGES = ['sophon', 'sophon.auto_split', 'sophon.auto_split.common',
             'sophon.algokit.engine', 'sophon.algokit.libs',
             'sophon.algokit.libs.extend_layer', 'sophon.algokit.utils']
 
+filehandle = open("../../git_version","r");
+git_version = filehandle.readline();
+print(git_version);
+
 # wrap sophon python module
 setup(name='sophon',
-      version='2.1.0',
+      version=git_version,
       description='Inference samples for deep learning on Sophon products.',
       author='Sophon algorithm team',
       author_email='hong.liu@bitmain.com',

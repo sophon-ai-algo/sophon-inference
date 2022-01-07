@@ -1,4 +1,4 @@
-""" Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+""" Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import argparse
 import threading
 import numpy as np
 import json
+import signal
 from sophon import sail
 from processor import preprocess
 from processor import postprocess
@@ -67,9 +68,15 @@ def thread_infer(thread_id, engine, input_path, loops, compare_path, status):
       return
   status[thread_id] = True
 
+def signal_handle():
+  print("INT*****")
+  sys.exit(0)
+
 def main():
   """ An example shows infernece of one model on multiple TPUs.
   """
+  signal.signal(signal.SIGINT, signal_handle)
+
   # init Engine to load bmodel and allocate input and output tensors
   # one engine for one TPU
   engines = list()
@@ -85,10 +92,16 @@ def main():
                                           ARGS.input, ARGS.loops, \
                                           ARGS.compare, status)))
   for i in range(thread_num):
+    threads[i].setDaemon(True)
     threads[i].start()
-  for i in range(thread_num):
-    threads[i].join()
-  # check status
+  while True:
+    alive=False
+    for t in threads:
+      alive = alive or t.isAlive()
+      if alive == True:
+        break
+    if not alive:
+      break
   for stat in status:
     if not stat:
       sys.exit(-1)

@@ -12,7 +12,7 @@ INC_DIR += -I$(sdk_dir)/include/bmlib
 INC_DIR += -I$(sdk_dir)/include/third_party/boost/include
 INC_DIR += -I$(top_dir)/NeuralNetwork/include
 
-DEFS = -DUSE_BMCV -DUSE_FFMPEG -DUSE_PCIE -DUSE_FFMPEGBMCV
+DEFS = -DUSE_BMCV -DUSE_FFMPEG -DUSE_FFMPEGBMCV
 CXXFLAGS := -g -O2 -Wall -std=c++11 ${DEFS} $(INC_DIR)
 LOCAL_MEM_ADDRWIDTH           ?= 19
 CXXFLAGS += -DCONFIG_LOCAL_MEM_ADDRWIDTH=$(LOCAL_MEM_ADDRWIDTH)

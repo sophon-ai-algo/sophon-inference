@@ -67,25 +67,24 @@ Case 1: 使用 bm-ffmpeg 解码、使用 bmcv 做预处理
 Case 2: case 1 的 4N 模式
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    The pipeline in case 2 is the same as that in case 1.
-    But the batchsize in case 4 is 4.
-    We want use this case to show you that,
-    if you are using int8 computing units, batchsize is recommanded as 4 or multiples of 4.
-    At this situation, you can use the TPU to its fullest.
+    case 2 的流程与 case 1 几乎一致，但其 bmodel 的 batch 维度是 4。
+    因此，需要 4 张图像或者 4 帧视频一起处理。
+
+    当 bmodel 的 batch 为 4 的倍数时，可以发挥出 TPU 上 int8 算力的最大性能。
 
 
 
 Case 3: 使用 bm-opencv 做解码和数据预处理
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    This case is suitale for SOC mode only.
-    The form of calling bm-opencv in SOC mode is almost the same as calling opencv(public released) in PCIE mode.
+    Case 3 只适用于SOC模式。
+    在SOC模式下调用bm-opencv和在PCIE模式下调用opencv的方法基本一致。
 
 Case 4: 使用 bm-opencv 做解码，使用 bmcv 做预处理
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    This case is suitale for SOC mode only.
-    The form of calling bm-opencv in SOC mode is almost the same as calling opencv(public released) in PCIE mode.
+    Case 3 只适用于SOC模式。
+    在SOC模式下调用bm-opencv和在PCIE模式下调用opencv的方法基本一致。
 
 
 

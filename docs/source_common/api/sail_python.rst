@@ -29,6 +29,74 @@ _________
         # Data type for uint8
         sail.Dtype.BM_UINT8
 
+PaddingAtrr
+_________
+
+.. code-block:: python
+
+        def set_stx(stx):
+            """ set offset stx.
+
+            Parameters
+            ----------
+            stx : int
+                Offset x information relative to the origin of dst image
+            """
+
+        def set_sty(sty):
+            """ set offset sty.
+
+            Parameters
+            ----------
+            sty : int
+                Offset y information relative to the origin of dst image
+            """
+
+        def set_w(width):
+            """ set widht.
+
+            Parameters
+            ----------
+            width : int
+                The width after resize
+            """
+
+        def set_h(height):
+            """ set height.
+
+            Parameters
+            ----------
+            height : int
+                The height after resize
+            """
+
+        def set_r(r):
+            """ set R.
+
+            Parameters
+            ----------
+            r : int
+                Pixel value information of R channel
+            """
+
+        def set_g(g):
+            """ set G.
+
+            Parameters
+            ----------
+            g : int
+                Pixel value information of G channel
+            """
+
+        def set_g(b):
+            """ set B.
+
+            Parameters
+            ----------
+            b : int
+                Pixel value information of B channel
+            """
+
 sail.Handle
 ___________
 
@@ -428,11 +496,13 @@ ___________
 
     .. code-block:: python
 
-        def set_io_mode(mode):
+        def set_io_mode(graph_name, mode):
             """ Set IOMode for a graph.
 
             Parameters
             ----------
+            graph_name: str
+                The specified graph name
             mode : sail.IOMode
                 Specified io mode
             """
@@ -499,7 +569,10 @@ ___________
     .. code-block:: python
 
         def get_input_shape(graph_name, tensor_name):
-            """ Get the shape of an input tensor in a graph.
+            """ Get the maximum dimension shape of an input tensor in a graph.
+                There are cases that there are multiple input shapes in one input name, 
+                This API only returns the maximum dimension one for the memory allocation 
+                in order to get the best performance.
 
             Parameters
             ----------
@@ -511,7 +584,7 @@ ___________
             Returns
             -------
             tensor_shape : list
-                The shape of the tensor
+                The maxmim dimension shape of the tensor
             """
 
 **10). get_max_output_shapes**
@@ -819,6 +892,17 @@ _________
                 Tensor instance
             """
 
+        def bm_image_to_tensor(image, tensor):
+            """ Convert image to tensor.
+
+            Parameters
+            ----------
+            image : sail.BMImage
+                BMImage instance
+
+            tensor : sail.Tensor
+                Tensor instance
+            """
 **3). tensor_to_bm_image**
 
     .. code-block:: python
@@ -945,7 +1029,39 @@ _________
                 Output image
             """
 
-**8). vpp_crop**
+**8). vpp_crop_and_resize_padding**
+
+    .. code-block:: python
+
+        def vpp_crop_and_resize_padding(input, crop_x0, crop_y0, crop_w, crop_h, resize_w, resize_h, padding):
+            """ Crop then resize an image using vpp.
+
+            Parameters
+            ----------
+            input : sail.BMImage
+                Input image
+            crop_x0 : int
+                Start point x of the crop window
+            crop_y0 : int
+                Start point y of the crop window
+            crop_w : int
+                Width of the crop window
+            crop_h : int
+                Height of the crop window
+            resize_w : int
+                Target width
+            resize_h : int
+                Target height
+            padding : PaddingAtrr
+                padding info
+
+            Returns
+            ----------
+            output : sail.BMImage
+                Output image
+            """
+
+**9). vpp_crop**
 
     .. code-block:: python
 
@@ -971,7 +1087,37 @@ _________
                 Output image
             """
 
-**9). vpp_resize**
+**10). vpp_crop_padding**
+
+    .. code-block:: python
+
+        def vpp_crop_padding(input, crop_x0, crop_y0, crop_w, crop_h, padding):
+            """ Crop an image with given window using vpp.
+
+            Parameters
+            ----------
+            input : sail.BMImage
+                Input image
+            crop_x0 : int
+                Start point x of the crop window
+            crop_y0 : int
+                Start point y of the crop window
+            crop_w : int
+                Width of the crop window
+            crop_h : int
+                Height of the crop window
+            padding : PaddingAtrr
+                padding info
+
+            Returns
+            ----------
+            output : sail.BMImage
+                Output image
+            """
+
+
+
+**11). vpp_resize**
 
     .. code-block:: python
 
@@ -992,8 +1138,46 @@ _________
             output : sail.BMImage
                 Output image
             """
+         def vpp_resize(input, output, resize_w, resize_h):
+            """ Resize an image with interpolation of INTER_NEAREST using vpp.
 
-**10). warp**
+            Parameters
+            ----------
+            input : sail.BMImage
+                Input image
+            output : sail.BMImage
+                Output image
+            resize_w : int
+                Target width
+            resize_h : int
+                Target height
+            """
+
+**12). vpp_resize_padding**
+
+    .. code-block:: python
+
+        def vpp_resize_padding(input, resize_w, resize_h, padding):
+            """ Resize an image with interpolation of INTER_NEAREST using vpp.
+
+            Parameters
+            ----------
+            input : sail.BMImage
+                Input image
+            resize_w : int
+                Target width
+            resize_h : int
+                Target height
+            padding : PaddingAtrr
+                padding info
+
+            Returns
+            ----------
+            output : sail.BMImage
+                Output image
+            """
+
+**13). warp**
 
     .. code-block:: python
 
@@ -1013,7 +1197,7 @@ _________
                 Output image
             """
 
-**11). convert_to**
+**14). convert_to**
 
     .. code-block:: python
 
@@ -1033,7 +1217,7 @@ _________
                 Output image
             """
 
-**12). yuv2bgr**
+**15). yuv2bgr**
 
     .. code-block:: python
 
@@ -1051,7 +1235,7 @@ _________
                 Output image
             """
 
-**13). vpp_convert**
+**16). vpp_convert**
 
     .. code-block:: python
 
@@ -1069,7 +1253,7 @@ _________
                 Output image
             """
 
-**14). convert**
+**17). convert**
 
     .. code-block:: python
 
@@ -1087,7 +1271,7 @@ _________
                 Output image
             """
 
-**15). rectangle**
+**18). rectangle**
 
     .. code-block:: python
 
@@ -1117,7 +1301,7 @@ _________
                 0 for success and others for failure
             """
 
-**16). imwrite**
+**19). imwrite**
 
     .. code-block:: python
 
@@ -1137,7 +1321,7 @@ _________
                 0 for success and others for failure
             """
 
-**17). get_handle**
+**20). get_handle**
 
     .. code-block:: python
 

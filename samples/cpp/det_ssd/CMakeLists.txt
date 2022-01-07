@@ -1,29 +1,34 @@
-set(CMAKE_CXX_FLAGS "-Wall")
 
-# find opencv
-find_package(OpenCV REQUIRED)
-# include
-include_directories(${BMSDK_INCLUDE_DIRS}
-                    ${OpenCV_INCLUDE_DIRS}
-                    ${PROJECT_SOURCE_DIR}/include)
-link_directories(${OpenCV_LIBRARY_DIRS}
-                 ${BMSDK_LIBRARY_DIRS})
-# bm lib path
-link_libraries(${OpenCV_LIBRARIES} ${BMSDK_LIBRARIES} sail)
+message(STATUS "[det_ssd]bmnn_link_dirs=${bmnn_link_dirs}")
 
-if(USE_FFMPEG)
-  include_directories(${FFMPEG_INCLUDE_DIRS})
-  link_libraries(${FFMPEG_LIBRARIES} ${BMDECODE_LIBRARIES})
-endif()
-
-# build executable
+if (NOT WIN32)
+	link_libraries(sail ${opencv_link_libs} ${ffmpeg_link_libs} ${bmnn_link_libs} pthread)
+  # build executable
 add_executable(det_ssd_0 det_ssd_0.cpp processor.cpp cvdecoder.cpp)
 
-if(USE_FFMPEG)
-  if(NOT USE_PCIE)
+if (USE_FFMPEG)
+  if (USE_BMCV)
     add_executable(det_ssd_3 det_ssd_3.cpp processor.cpp cvdecoder.cpp)
     add_executable(det_ssd_4 det_ssd_4.cpp processor.cpp cvdecoder.cpp)
-  endif()
+  endif ()
+
   add_executable(det_ssd_1 det_ssd_1.cpp processor.cpp)
   add_executable(det_ssd_2 det_ssd_2.cpp processor.cpp)
+endif ()
+else()
+	link_libraries(libsail ${opencv_link_libs} ${ffmpeg_link_libs} ${bmnn_link_libs})
+  # build executable
+add_executable(det_ssd_0 det_ssd_0.cpp processor.cpp cvdecoder.cpp getopt_win.c)
+
+if (USE_FFMPEG)
+  if (USE_BMCV)
+    add_executable(det_ssd_3 det_ssd_3.cpp processor.cpp cvdecoder.cpp getopt_win.c)
+    add_executable(det_ssd_4 det_ssd_4.cpp processor.cpp cvdecoder.cpp getopt_win.c)
+  endif ()
+
+  add_executable(det_ssd_1 det_ssd_1.cpp processor.cpp getopt_win.c)
+  add_executable(det_ssd_2 det_ssd_2.cpp processor.cpp getopt_win.c)
+endif ()
 endif()
+
+

@@ -79,9 +79,9 @@ python3 -V
 # choose the same verion of sophon wheel to install
 # the following py3x maybe py35, py36, py37 or py38
 # for x86
-pip3 install ../lib/sail/python3/pcie/py3x/sophon-2.0.3-py3-none-any.whl --user
+pip3 install ../lib/sail/python3/pcie/py3x/sophon-?.?.?-py3-none-any.whl --user
 # for arm
-pip3 install ../lib/sail/python3/arm_pcie//py3x/sophon-2.0.3-py3-none-any.whl --user
+pip3 install ../lib/sail/python3/arm_pcie/py3x/sophon-?.?.?-py3-none-any.whl --user
 ```
 
 * Test cpp and python cases

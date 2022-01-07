@@ -30,8 +30,8 @@ Run C++ cases
 
         .. code-block:: shell
 
-           ./det_yolov3_0 --bmodel  ./yolov3_fp32.bmodel --input ./det.h264 --threads 2
-           ./det_yolov3_0 --bmodel  ./yolov3_int8.bmodel --input ./det.h264 --threads 2
+           ./det_yolov3_1 --bmodel  ./yolov3_fp32.bmodel --input ./det.h264 --threads 2
+           ./det_yolov3_1 --bmodel  ./yolov3_int8.bmodel --input ./det.h264 --threads 2
 
 
 

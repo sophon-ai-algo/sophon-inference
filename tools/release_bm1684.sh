@@ -12,6 +12,12 @@ function create_release_directory() {
   mkdir -p out/sophon-inference/lib/sail/soc
   mkdir -p out/sophon-inference/lib/sail/arm_pcie/lib_CXX11_ABI1
   mkdir -p out/sophon-inference/lib/sail/arm_pcie/lib_CXX11_ABI0
+  mkdir -p out/sophon-inference/lib/sail/mips64/lib_CXX11_ABI1
+  mkdir -p out/sophon-inference/lib/sail/mips64/lib_CXX11_ABI0
+  mkdir -p out/sophon-inference/lib/sail/sw64/lib_CXX11_ABI1
+  mkdir -p out/sophon-inference/lib/sail/sw64/lib_CXX11_ABI0
+  mkdir -p out/sophon-inference/lib/sail/loongarch64/lib_CXX11_ABI1
+  mkdir -p out/sophon-inference/lib/sail/loongarch64/lib_CXX11_ABI0
   mkdir -p out/sophon-inference/lib/sail/cmodel/lib_CXX11_ABI1
   mkdir -p out/sophon-inference/lib/sail/cmodel/lib_CXX11_ABI0
   mkdir -p out/sophon-inference/python3/pcie/lib_CXX11_ABI1
@@ -19,6 +25,12 @@ function create_release_directory() {
   mkdir -p out/sophon-inference/python3/soc
   mkdir -p out/sophon-inference/python3/arm_pcie/lib_CXX11_ABI1
   mkdir -p out/sophon-inference/python3/arm_pcie/lib_CXX11_ABI0
+  mkdir -p out/sophon-inference/python3/mips64/lib_CXX11_ABI1
+  mkdir -p out/sophon-inference/python3/mips64/lib_CXX11_ABI0
+  mkdir -p out/sophon-inference/python3/sw64/lib_CXX11_ABI1
+  mkdir -p out/sophon-inference/python3/sw64/lib_CXX11_ABI0
+  mkdir -p out/sophon-inference/python3/loongarch64/lib_CXX11_ABI1
+  mkdir -p out/sophon-inference/python3/loongarch64/lib_CXX11_ABI0
   mkdir -p out/sophon-inference/python3/cmodel/lib_CXX11_ABI1
   mkdir -p out/sophon-inference/python3/cmodel/lib_CXX11_ABI0
   mkdir -p out/sophon-inference/docs
@@ -68,15 +80,29 @@ function build_lib {
   # cmake config
   local lib_path=""
   local py_keyword=""
-  local cmake_params=""
+  local cmake_params="-DSDK_TYPE=allinone"
+  if [[ ("$cpp_or_py" == "all" || "$cpp_or_py" == "py") && -n "$py_version_short" ]]; then
+    local py_path=$PYTHONS_PATH/Python-$py_version_long/python_$py_version_long
+    if [[ -x $py_path ]]; then
+      local py_bin_path=$py_path/bin/python$py_version_middle
+      export LD_LIBRARY_PATH=$py_path/lib
+      $py_bin_path -V
+      if [[ $? == 0 ]]; then
+        cmake_params="$cmake_params -DPYTHON_EXECUTABLE=$py_bin_path -DCUSTOM_PY_LIBDIR=$py_path/lib"
+      fi
+    else
+      echo "Error: file not exist: $py_path/bin/python$py_version_middle"
+      py_version_short=""
+    fi
+  fi
   if [[ "$pcie_or_soc" == "soc" ]]; then
     lib_path="soc"
     py_keyword="soc"
-    cmake_params="-DUSE_BMCV=ON -DUSE_PCIE=OFF -DCMAKE_TOOLCHAIN_FILE=../cmake/BM1684_SOC/ToolChain_aarch64_linux.cmake"
+    cmake_params="$cmake_params -DUSE_BMCV=ON -DBUILD_TYPE=soc -DCMAKE_TOOLCHAIN_FILE=../cmake/BM1684_SOC/ToolChain_aarch64_linux.cmake"
   elif [[ "$pcie_or_soc" == "pcie" ]]; then
     if [[ "$x86_or_arm_or_cmodel" == "arm" ]]; then
       py_keyword="arm_pcie"
-      cmake_params="-DUSE_BMCV=ON -DUSE_ARM_PCIE=ON -DCMAKE_TOOLCHAIN_FILE=../cmake/BM1684_ARM_PCIE/ToolChain_aarch64_linux.cmake"
+      cmake_params="$cmake_params -DUSE_BMCV=ON -DBUILD_TYPE=arm_pcie -DCMAKE_TOOLCHAIN_FILE=../cmake/BM1684_ARM_PCIE/ToolChain_aarch64_linux.cmake"
       if [[ "$ubuntu_or_centos" == "ubuntu" ]]; then
         lib_path="arm_pcie/lib_CXX11_ABI1"
       elif [[ "$ubuntu_or_centos" == "centos" ]]; then
@@ -86,26 +112,61 @@ function build_lib {
         echo "Invalid parameter ubuntu_or_centos: $ubuntu_or_centos"
         exit 1
       fi
-    elif [[ "$x86_or_arm_or_cmodel" == "x86" ]]; then
-      py_keyword="pcie"
+    elif [[ "$x86_or_arm_or_cmodel" == "mips64" ]]; then
+      py_keyword="mips64"
+      cmake_params="$cmake_params -DUSE_BMCV=ON -DBUILD_TYPE=mips64 -DCMAKE_TOOLCHAIN_FILE=../cmake/ToolChain_mips64_linux.cmake"
       if [[ "$ubuntu_or_centos" == "ubuntu" ]]; then
-        lib_path="pcie/lib_CXX11_ABI1"
-        cmake_params="-DUSE_BMCV=ON"
+        lib_path="mips64/lib_CXX11_ABI1"
       elif [[ "$ubuntu_or_centos" == "centos" ]]; then
-        lib_path="pcie/lib_CXX11_ABI0"
-        cmake_params="-DUSE_BMCV=ON -DUSE_CENTOS=ON"
+        lib_path="mips64/lib_CXX11_ABI0"
+        cmake_params="$cmake_params -DUSE_CENTOS=ON"
       else
         echo "Invalid parameter ubuntu_or_centos: $ubuntu_or_centos"
         exit 1
+      fi
+    elif [[ "$x86_or_arm_or_cmodel" == "x86" ]]; then
+      py_keyword="pcie"
+      cmake_params="$cmake_params -DBUILD_TYPE=pcie -DCMAKE_CXX_COMPILER=x86_64-linux-g++ -DCMAKE_C_COMPILER=x86_64-linux-gcc"
+      if [[ "$ubuntu_or_centos" == "ubuntu" ]]; then
+        lib_path="pcie/lib_CXX11_ABI1"
+        cmake_params="$cmake_params -DUSE_BMCV=ON"
+      elif [[ "$ubuntu_or_centos" == "centos" ]]; then
+        lib_path="pcie/lib_CXX11_ABI0"
+        cmake_params="$cmake_params -DUSE_BMCV=ON -DUSE_CENTOS=ON"
+      else
+        echo "Invalid parameter ubuntu_or_centos: $ubuntu_or_centos"
+        exit 1
+      fi
+    elif [[ "${x86_or_arm_or_cmodel}" == "sw64" ]]; then
+      py_keyword="sw64"
+      cmake_params="${cmake_params} -DUSE_BMCV=ON -DBUILD_TYPE=sw64 -DCMAKE_TOOLCHAIN_FILE=../cmake/ToolChain_sw64_linux.cmake"
+      if [[ "${ubuntu_or_centos}" == "ubuntu" ]]; then
+        lib_path="sw64/lib_CXX11_ABI1"
+      elif [[ "${ubuntu_or_centos}" == "centos" ]]; then
+        lib_path="sw64/lib_CXX11_ABI0"
+        cmake_params="${cmake_params} -DUSE_CENTOS=ON"
+      else
+        echo "Invaid parameter ubuntu_or_centos: ${ubuntu_or_centos}"
+      fi
+    elif [[ "${x86_or_arm_or_cmodel}" == "loongarch64" ]]; then
+      py_keyword="loongarch64"
+      cmake_params="${cmake_params} -DUSE_BMCV=ON -DBUILD_TYPE=loongarch64 -DCMAKE_TOOLCHAIN_FILE=../cmake/ToolChain_loongarch64_linux.cmake"
+      if [[ "${ubuntu_or_centos}" == "ubuntu" ]]; then
+        lib_path="loongarch64/lib_CXX11_ABI1"
+      elif [[ "${ubuntu_or_centos}" == "centos" ]]; then
+        lib_path="loongarch64/lib_CXX11_ABI0"
+        cmake_params="${cmake_params} -DUSE_CENTOS=ON"
+      else
+        echo "Invaid parameter ubuntu_or_centos: ${ubuntu_or_centos}"
       fi
     elif [[ "$x86_or_arm_or_cmodel" == "cmodel" ]]; then
       py_keyword="pcie"
       if [[ "$ubuntu_or_centos" == "ubuntu" ]]; then
         lib_path="cmodel/lib_CXX11_ABI1"
-        cmake_params="-DUSE_CMODEL=ON -DUSE_BMCV=OFF -DUSE_FFMPEG=OFF"
+        cmake_params="$cmake_params -DBUILD_TYPE=cmodel"
       elif [[ "$ubuntu_or_centos" == "centos" ]]; then
         lib_path="cmodel/lib_CXX11_ABI0"
-        cmake_params="-DUSE_CMODEL=ON -DUSE_CENTOS=ON -DUSE_BMCV=OFF -DUSE_FFMPEG=OFF"
+        cmake_params="$cmake_params -DBUILD_TYPE=cmodel -DUSE_CENTOS=ON"
       else
         echo "Invalid parameter ubuntu_or_centos: $ubuntu_or_centos"
         exit 1
@@ -114,33 +175,21 @@ function build_lib {
       echo "Invalid parameter x86_or_arm_or_cmodel: $x86_or_arm_or_cmodel"
       exit 1
     fi
-    if [[ ("$cpp_or_py" == "all" || "$cpp_or_py" == "py") && -n "$py_version_short" ]]; then
-      local py_path=/workspace/pythons/Python-$py_version_long/python_$py_version_long
-      if [[ -x $py_path ]]; then
-        local py_bin_path=$py_path/bin/python$py_version_middle
-        export LD_LIBRARY_PATH=$py_path/lib
-        $py_bin_path -V
-        if [[ $? == 0 ]]; then
-          cmake_params="$cmake_params -DPYTHON_EXECUTABLE=$py_bin_path -DCUSTOM_PY_LIBDIR=$py_path/lib"
-        fi
-      else
-        echo "Error: file not exist: $py_path/bin/python$py_version_middle"
-        py_version_short=""
-      fi
-    fi
-  else
+ else
     echo "Invalid parameter pcie_or_soc: $pcie_or_soc"
     exit 1
   fi
+  echo cmake_param=$cmake_params
   cmake -DUSE_LOCAL=OFF $cmake_params ..
 
   # make targets
+  core_nums=`cat /proc/cpuinfo| grep "processor"| wc -l`
   if [[ "$cpp_or_py" == "all" ]]; then
-    make -j
+    make -j${core_nums}
   elif [[ "$cpp_or_py" == "cpp" ]]; then
-    make cpp -j
+    make cpp -j${core_nums}
   elif [[ "$cpp_or_py" == "py" ]]; then
-    make pysail -j
+    make pysail -j${core_nums}
   else
     echo "Invalid parameter x86_or_arm_or_cmodel: $cpp_or_py"
     exit 1
@@ -164,20 +213,22 @@ function build_lib {
     pushd python/$py_keyword
     ./sophon_${py_keyword}_whl.sh
     popd
+
+    local py_lib_dir="./out/sophon-inference/python3/$lib_path/$py_version_short"
+    if [[ ! -d $py_lib_dir ]]; then
+      mkdir -p $py_lib_dir
+    fi
+
     if [[ "$pcie_or_soc" == "soc" ]]; then
-      cp -r ./python/soc/arm/sophon ./out/sophon-inference/python3/soc
-      rm ./out/sophon-inference/python3/soc/sophon/auto_runner
-      rm ./out/sophon-inference/python3/soc/sophon/algokit
-      rm ./out/sophon-inference/python3/soc/sophon/utils
-      cp -r ./modules/auto_runner ./out/sophon-inference/python3/soc/sophon
-      cp -r ./modules/algokit ./out/sophon-inference/python3/soc/sophon
-      cp -r ./modules/utils ./out/sophon-inference/python3/soc/sophon
+      cp -r ./python/soc/arm/sophon $py_lib_dir
+      rm $py_lib_dir/sophon/auto_runner
+      rm $py_lib_dir/sophon/algokit
+      rm $py_lib_dir/sophon/utils
+      cp -r ./modules/auto_runner $py_lib_dir/sophon
+      cp -r ./modules/algokit $py_lib_dir/sophon
+      cp -r ./modules/utils $py_lib_dir/sophon
     else
       # cp python wheel
-      local py_lib_dir="./out/sophon-inference/python3/$lib_path/$py_version_short"
-      if [[ ! -d $py_lib_dir ]]; then
-        mkdir -p $py_lib_dir
-      fi
       cp ./python/$py_keyword/dist/*whl $py_lib_dir
     fi
   fi
@@ -217,6 +268,9 @@ function fill_samples() {
   cp -r ./release/release_case/py_ffmpeg_bmcv_sail ./out/sophon-inference/samples/python/det_ssd_bmcv
   cp -r ./samples/python/det_ssd/det_ssd_1.py ./out/sophon-inference/samples/python/det_ssd_bmcv/det_ssd_bmcv.py
   cp -r ./samples/python/det_ssd/det_ssd_2.py ./out/sophon-inference/samples/python/det_ssd_bmcv/det_ssd_bmcv_4b.py
+
+  # python: multiprocess_detection
+  cp -r ./samples/python/multiprocess_detection ./out/sophon-inference/samples/python/multiprocess_detection
 }
 
 function fill_se5_tests() {
@@ -302,12 +356,45 @@ function release_bm1684() {
     build_lib pcie py arm centos 3.6.5
     build_lib pcie py arm centos 3.7.3
     build_lib pcie py arm centos 3.8.2
+    # mips64
+    #build_lib pcie all mips64 ubuntu 3.5.9
+    #build_lib pcie py mips64 ubuntu 3.6.5
+    #build_lib pcie py mips64 ubuntu 3.7.3
+    #build_lib pcie py mips64 ubuntu 3.8.2
+    build_lib pcie all mips64 centos 3.5.9
+    build_lib pcie py mips64 centos 3.6.5
+    build_lib pcie py mips64 centos 3.7.3
+    build_lib pcie py mips64 centos 3.8.2
+
+    #sw64
+    build_lib pcie all sw64 ubuntu 3.5.9
+    build_lib pcie py sw64 ubuntu 3.6.5
+    build_lib pcie py sw64 ubuntu 3.7.3
+    build_lib pcie py sw64 ubuntu 3.8.2
+    #build_lib pcie all sw64 centos 3.5.9
+    #build_lib pcie py sw64 centos 3.6.5
+    #build_lib pcie py sw64 centos 3.7.3
+    #build_lib pcie py sw64 centos 3.8.2
+
+    #loongarch64
+    build_lib pcie all loongarch64 ubuntu 3.5.9
+    build_lib pcie py loongarch64 ubuntu 3.6.5
+    build_lib pcie py loongarch64 ubuntu 3.7.3
+    build_lib pcie py loongarch64 ubuntu 3.8.2
+    #build_lib pcie all loongarch64 centos 3.5.9
+    #build_lib pcie py loongarch64 centos 3.6.5
+    #build_lib pcie py loongarch64 centos 3.7.3
+    #build_lib pcie py loongarch64 centos 3.8.2
+    
     # soc
-    build_lib soc
+    build_lib soc all '' '' 3.5.9
     fill_se5_tests
+    build_lib soc py '' '' 3.6.5
+    build_lib soc py '' '' 3.7.3
+    build_lib soc py '' '' 3.8.2
     # cmodel (ubuntu/centos)
-    build_lib pcie all cmodel ubuntu
-    build_lib pcie all cmodel centos
+    #build_lib pcie all cmodel ubuntu 3.5.9
+    #build_lib pcie all cmodel centos 3.5.9
   elif [ "${mode}" == "pcie" ]; then
     build_lib pcie all x86 ubuntu 3.5.9
     build_lib pcie py x86 ubuntu 3.6.5
@@ -318,11 +405,14 @@ function release_bm1684() {
     build_lib pcie py x86 centos 3.7.3
     build_lib pcie py x86 centos 3.8.2
   elif [ "${mode}" == "soc" ]; then
-    build_lib soc
+    build_lib soc all '' '' 3.5.9
     fill_se5_tests
+    build_lib soc py '' '' 3.6.5
+    build_lib soc py '' '' 3.7.3
+    build_lib soc py '' '' 3.8.2
   elif [ "${mode}" == "cmodel" ]; then
-    build_lib pcie all cmodel ubuntu
-    build_lib pcie all cmodel centos
+    build_lib pcie all cmodel ubuntu 3.5.9
+    build_lib pcie all cmodel centos 3.5.9
   elif [ "${mode}" == "arm_pcie" ]; then
     build_lib pcie all arm ubuntu 3.5.9
     build_lib pcie py arm ubuntu 3.6.5
@@ -332,6 +422,33 @@ function release_bm1684() {
     build_lib pcie py arm centos 3.6.5
     build_lib pcie py arm centos 3.7.3
     build_lib pcie py arm centos 3.8.2
+  elif [ "${mode}" == "mips64" ]; then
+    #build_lib pcie all mips64 ubuntu 3.5.9
+    #build_lib pcie py mips64 ubuntu 3.6.5
+    #build_lib pcie py mips64 ubuntu 3.7.3
+    #build_lib pcie py mips64 ubuntu 3.8.2
+    build_lib pcie all mips64 centos 3.5.9
+    build_lib pcie py mips64 centos 3.6.5
+    build_lib pcie py mips64 centos 3.7.3
+    build_lib pcie py mips64 centos 3.8.2
+  elif [ "${mode}" == "sw64" ]; then
+    build_lib pcie all sw64 ubuntu 3.5.9
+    build_lib pcie py sw64 ubuntu 3.6.5
+    build_lib pcie py sw64 ubuntu 3.7.3
+    build_lib pcie py sw64 ubuntu 3.8.2
+    #build_lib pcie all sw64 centos 3.5.9
+    #build_lib pcie py sw64 centos 3.6.5
+    #build_lib pcie py sw64 centos 3.7.3
+    #build_lib pcie py sw64 centos 3.8.2
+  elif [ "${mode}" == "loongarch64" ]; then
+    build_lib pcie all loongarch64 ubuntu 3.5.9
+    build_lib pcie py loongarch64 ubuntu 3.6.5
+    build_lib pcie py loongarch64 ubuntu 3.7.3
+    build_lib pcie py loongarch64 ubuntu 3.8.2
+    #build_lib pcie all loongarch64 centos 3.5.9
+    #build_lib pcie py loongarch64 centos 3.6.5
+    #build_lib pcie py loongarch64 centos 3.7.3
+    #build_lib pcie py loongarch64 centos 3.8.2
   else
     echo "${mode} is not a valid mode!"
     exit 1
@@ -344,4 +461,17 @@ function release_bm1684() {
 }
 
 mode=$1
+if [ -n "$PYTHONS_PATH" ] ; then
+  PYTHONS_PATH=$PYTHONS_PATH
+else
+  PYTHONS_PATH=/workspace/pythons
+fi
+
+function obtain_git_branch {
+  br=`git branch | grep "*"`
+  echo ${br/* /}
+}
+result=`obtain_git_branch`
+echo $result >./git_version
+
 release_bm1684

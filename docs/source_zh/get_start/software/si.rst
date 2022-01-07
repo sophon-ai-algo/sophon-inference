@@ -15,6 +15,4 @@ a).驱动 TPU 加载 bmodel 并进行推理;
 
 b).驱动 TPU 进行图像和视频的处理。
 
-在线英文文档: https://sophon-ai-algo.github.io/sophon-inference-doc_en/
-
-在线中文文档: https://sophon-ai-algo.github.io/sophon-inference-doc_zh/
+在线文档: https://sophgo-doc.gitbook.io/sophon-inference/

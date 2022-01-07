@@ -1,4 +1,4 @@
-/* Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+/* Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -109,6 +109,7 @@ bool PostProcessor::compare(
     std::vector<int>&                        result,
     const std::string&                       dtype) {
   if (reference.empty()) {
+    spdlog::info("No verify_files file or verify_files err.");
     return true;
   }
   std::vector<int>& ref = reference[dtype];

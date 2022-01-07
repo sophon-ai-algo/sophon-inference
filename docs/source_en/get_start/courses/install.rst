@@ -40,8 +40,9 @@ Sophon-Inference is a submodule of BMNNSDK which supplies a bunch of hight level
 With Sophon-Inference, we can rapidly deploy our deep learning models on Sophon TPU products.
 **Install Sophon-Inference:**
     .. code-block:: shell
-
-       cd ${BMNNSDK}/exsamples/sail/python3/x86/ && pip3 install sophon-2.0.2-py3-none-any.whl --user
+    
+      # enter the corresponding directory according to the architecture and python vrsion, for exsamples, x86 and python3.5
+       cd ${BMNNSDK}/lib/sail/python3/pcie/py35 && pip3 install sophon-x.x.x-py3-none-any.whl --user
 
 
 

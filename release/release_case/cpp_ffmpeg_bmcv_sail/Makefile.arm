@@ -27,11 +27,11 @@ LDLIBS := -lsail -lbmrt -lbmlib -lbmcv -ldl \
 LIB_DIR = -L$(sdk_dir)/lib/thirdparty/soc
 LIB_DIR += -L$(sdk_dir)/lib/sail/soc
 LIB_DIR += -L$(sdk_dir)/lib/bmnn/soc
-LIB_DIR += -L$(sdk_dir)/lib/opencv/soc -L$(sdk_dir)/lib/ffmpeg/soc -L$(sdk_dir)/lib/decode/soc
+LIB_DIR += -L$(sdk_dir)/lib/opencv/soc  -L$(sdk_dir)/lib/ffmpeg/soc -L$(sdk_dir)/lib/decode/soc
 
 LDFLAGS = -Wl,-rpath=$(sdk_dir)/lib/bmnn/soc
 LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/sail/soc
-LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/opencv
+LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/opencv/soc
 LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/ffmpeg/soc
 LDFLAGS += -Wl,-rpath=$(sdk_dir)/lib/decode/soc
 LDFLAGS += $(LIB_DIR)

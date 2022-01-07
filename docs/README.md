@@ -3,10 +3,11 @@ This is the document repo of Sophon Inference.
 
 ## Prerequisites
 
-install **sphinx** texlive-xetex texlive-latex-recommended
+python3.8 is prefered
 
 ```shell
-pip install sphinx sphinx-autobuild sphinx_rtd_theme rst2pdf
+sudo apt install texlive-xetex texlive-latex-recommended
+pip3.8 install sphinx sphinx-autobuild sphinx_rtd_theme rst2pdf
 ```
 
 ## Get Fandol font for linux system

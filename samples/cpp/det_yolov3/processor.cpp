@@ -1,4 +1,4 @@
-/* Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+/* Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ PreProcessor::PreProcessor(int height, int width)
     : height_(height), width_(width) {}
 
 void PreProcessor::process(float* input, cv::Mat& frame) {
-  frame.convertTo(frame, CV_32FC3);
   cv::Mat resize_img;
   cv::Mat img_roi;
   cv::Mat back = cv::Mat(cv::Size(width_, height_),
@@ -52,6 +51,7 @@ void PreProcessor::process(float* input, cv::Mat& frame) {
     img_roi = back(cv::Rect(((width_ - height_ * ratio) / 2), 0,
               resize_img.cols, resize_img.rows));
   }
+  resize_img.convertTo(resize_img, CV_32FC3);
   resize_img.copyTo(img_roi);
   back /= 255;
   cv::cvtColor(back, back, cv::COLOR_BGR2RGB);
@@ -66,9 +66,9 @@ void PreProcessor::process(float* input, cv::Mat& frame) {
 }
 
 void PreProcessor::processv2(float* input, cv::Mat& frame) {
-  frame.convertTo(frame, CV_32FC3);
   cv::Mat resize_img;
   cv::resize(frame, resize_img, cv::Size(width_, height_), 0, 0);
+  resize_img.convertTo(resize_img, CV_32FC3);
   resize_img /= 255;
   cv::cvtColor(resize_img, resize_img, cv::COLOR_BGR2RGB);
   std::vector<cv::Mat> input_channels;
@@ -140,7 +140,11 @@ bool PostProcessor::compare(
     std::vector<DetectRect>& reference,
     std::vector<DetectRect>& result,
     int                      loop_id) {
-  if (reference.empty() || loop_id > 0) {
+  if (reference.empty()) {
+    spdlog::info("No verify_files file or verify_files err.");
+    return true;
+  }
+  if (loop_id > 0) {
     return true;
   }
   if (reference.size() != result.size()) {

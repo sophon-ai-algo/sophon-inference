@@ -26,6 +26,32 @@ _________
          BM_UINT8        // unsigned int8
        };
 
+PaddingAtrr
+______
+
+**1). PaddingAtrr**
+    .. code-block:: c
+       class PaddingAtrr {
+       public:
+           PaddingAtrr(){};
+           ~PaddingAtrr(){};
+           void set_stx(unsigned int stx);
+           void set_sty(unsigned int sty);
+           void set_w(unsigned int w);
+           void set_h(unsigned int h);
+           void set_r(unsigned int r);
+           void set_g(unsigned int g);
+           void set_b(unsigned int b);
+
+           unsigned int    dst_crop_stx; // Offset x information relative to the origin of dst image
+           unsigned int    dst_crop_sty; // Offset y information relative to the origin of dst image
+           unsigned int    dst_crop_w;   // The width after resize
+           unsigned int    dst_crop_h;   // The height after resize
+           unsigned char   padding_r;    // Pixel value information of R channel
+           unsigned char   padding_g;    // Pixel value information of G channel
+           unsigned char   padding_b;    // Pixel value information of B channel
+       };
+
 Handle
 ______
 
@@ -1040,7 +1066,58 @@ _____
             int                          resize_w,
             int                          resize_h);
 
-**8). vpp_crop**
+**8). vpp_crop_and_resize_padding**
+    .. code-block:: c
+
+       /**
+        * @brief Crop then resize an image using vpp.
+        *
+        * @param input       Input image
+        * @param output      Output image
+        * @param crop_x0     Start point x of the crop window
+        * @param crop_y0     Start point y of the crop window
+        * @param crop_w      Width of the crop window
+        * @param crop_h      Height of the crop window
+        * @param resize_w    Target width
+        * @param resize_h    Target height
+        * @param padding_in  PaddingAtrr info
+        * @return 0 for success and other for failure
+        */
+        int vpp_crop_and_resize_padding(
+            BMImage                      &input,
+            BMImage                      &output,
+            int                          crop_x0,
+            int                          crop_y0,
+            int                          crop_w,
+            int                          crop_h,
+            int                          resize_w,
+            int                          resize_h,
+            PaddingAtrr                  &padding_in);
+
+       /**
+        * @brief Crop then resize an image using vpp.
+        *
+        * @param input       Input image
+        * @param crop_x0     Start point x of the crop window
+        * @param crop_y0     Start point y of the crop window
+        * @param crop_w      Width of the crop window
+        * @param crop_h      Height of the crop window
+        * @param resize_w    Target width
+        * @param resize_h    Target height
+        * @param padding_in  PaddingAtrr info
+        * @return Output image
+        */
+        BMImage vpp_crop_and_resize_padding(
+            BMImage                      &input,
+            int                          crop_x0,
+            int                          crop_y0,
+            int                          crop_w,
+            int                          crop_h,
+            int                          resize_w,
+            int                          resize_h,
+            PaddingAtrr                  &padding_in);
+
+**9). vpp_crop**
     .. code-block:: c
 
        /**
@@ -1079,7 +1156,50 @@ _____
            int                          crop_w,
            int                          crop_h);
 
-**9). vpp_resize**
+**10). vpp_crop_padding**
+    .. code-block:: c
+
+       /**
+        * @brief Crop an image with given window using vpp.
+        *
+        * @param input       Input image
+        * @param output      Output image
+        * @param crop_x0     Start point x of the crop window
+        * @param crop_y0     Start point y of the crop window
+        * @param crop_w      Width of the crop window
+        * @param crop_h      Height of the crop window
+        * @param padding_in  PaddingAtrr info
+        * @return 0 for success and other for failure
+        */
+       int vpp_crop_padding(
+           BMImage                      &input,
+           BMImage                      &output,
+           int                          crop_x0,
+           int                          crop_y0,
+           int                          crop_w,
+           int                          crop_h,
+           PaddingAtrr                  &padding_in);
+
+       /**
+        * @brief Crop an image with given window using vpp.
+        *
+        * @param input    Input image
+        * @param crop_x0  Start point x of the crop window
+        * @param crop_y0  Start point y of the crop window
+        * @param crop_w   Width of the crop window
+        * @param crop_h   Height of the crop window
+        * @param padding_in  PaddingAtrr info
+        * @return Output image
+        */
+       BMImage vpp_crop_padding(
+           BMImage                      &input,
+           int                          crop_x0,
+           int                          crop_y0,
+           int                          crop_w,
+           int                          crop_h,
+           PaddingAtrr                  &padding_in);
+
+**11). vpp_resize**
     .. code-block:: c
 
        /**
@@ -1110,7 +1230,42 @@ _____
            int                          resize_w,
            int                          resize_h);
 
-**10). warp**
+**12). vpp_resize_padding**
+    .. code-block:: c
+
+       /**
+        * @brief Resize an image with interpolation of INTER_NEAREST using vpp.
+        *
+        * @param input       Input image
+        * @param output      Output image
+        * @param resize_w    Target width
+        * @param resize_h    Target height
+        * @param padding_in  PaddingAtrr info
+        * @return 0 for success and other for failure
+        */
+        int vpp_resize_padding(
+            BMImage                      &input,
+            BMImage                      &output,
+            int                          resize_w,
+            int                          resize_h,
+            PaddingAtrr                  &padding_in);
+
+       /**
+        * @brief Resize an image with interpolation of INTER_NEAREST using vpp.
+        *
+        * @param input       Input image
+        * @param resize_w    Target width
+        * @param resize_h    Target height
+        * @param padding_in  PaddingAtrr info
+        * @return Output image
+        */
+       BMImage vpp_resize_padding(
+           BMImage                      &input,
+           int                          resize_w,
+           int                          resize_h,
+           PaddingAtrr                  &padding_in);
+
+**13). warp**
     .. code-block:: c
 
        /**
@@ -1141,7 +1296,7 @@ _____
              std::tuple<float, float, float>,
              std::tuple<float, float, float>> &matrix);
 
-**11). convert_to**
+**14). convert_to**
     .. code-block:: c
 
        /**
@@ -1174,7 +1329,7 @@ _____
              std::pair<float, float>,
              std::pair<float, float>>   &alpha_beta);
 
-**12). yuv2bgr**
+**15). yuv2bgr**
     .. code-block:: c
 
        /**
@@ -1196,7 +1351,7 @@ _____
         */
        BMImage yuv2bgr(BMImage  &input);
 
-**13). vpp_convert**
+**16). vpp_convert**
     .. code-block:: c
 
        /**
@@ -1218,7 +1373,7 @@ _____
         */
        BMImage vpp_convert(BMImage  &input);
 
-**14). convert**
+**17). convert**
     .. code-block:: c
 
        /**
@@ -1240,7 +1395,7 @@ _____
         */
        BMImage convert(BMImage  &input);
 
-**15). rectangle**
+**18). rectangle**
     .. code-block:: c
 
        /**
@@ -1264,7 +1419,7 @@ _____
            const std::tuple<int, int, int> &color,
            int                             thickness=1);
 
-**16). imwrite**
+**19). imwrite**
     .. code-block:: c
 
        /**
@@ -1278,7 +1433,7 @@ _____
            const std::string &filename,
            BMImage           &image);
 
-**17). get_handle**
+**20). get_handle**
     .. code-block:: c
 
        /**

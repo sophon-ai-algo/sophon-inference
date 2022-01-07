@@ -108,14 +108,11 @@ Case 2: case 1 的 4N 模式
 Case 3: 使用 bm-opencv 进行解码和预处理
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    This case is suitale for SOC mode only.
-    The form of calling bm-opencv in SOC mode is almost the same as calling opencv(public released) in PCIE mode.
+    Case 3 只适用于SOC模式。
+    在SOC模式下调用bm-opencv和在PCIE模式下调用opencv的方法基本一致。
 
 Case 4: 使用 bm-opencv 解码、使用 bmcv 做预处理
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    This case is suitale for SOC mode only.
-    The form of calling bm-opencv in SOC mode is almost the same as calling opencv(public released) in PCIE mode.
-
-
-
+    Case 3 只适用于SOC模式。
+    在SOC模式下调用bm-opencv和在PCIE模式下调用opencv的方法基本一致。

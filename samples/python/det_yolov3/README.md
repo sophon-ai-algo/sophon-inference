@@ -12,7 +12,7 @@ det_yolov3.py|video|opencv|opencv|fp32/int8|yolov3|static|1|N
 
 ```shell
 # download bmodel to current directory.
-# download.py is in directory of source repo: tools/
+# download.py is in directory examples/sail/sc5_tests
 ```shell
 # download data to current directory.
 python3 ./download.py yolov3_fp32.bmodel
@@ -67,7 +67,7 @@ python3 ./download.py det.h264
 #                              [--loops LOOPS_NUMBER(default:1)]
 #                              [--tpu_id TPU_ID(default:0)]
 #                              [--compare COMPARE_FILE_PATH]
-# run fp32 bmodel with input of video
+# run fp32 bmodel with input of image
 python3 ./det_yolov3.py --bmodel ./yolov3_fp32.bmodel --input ./det.h264
 # run int8 bmodel with input of video
 python3 ./det_yolov3.py --bmodel ./yolov3_int8.bmodel --input ./det.h264

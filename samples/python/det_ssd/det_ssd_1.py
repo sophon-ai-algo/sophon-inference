@@ -1,4 +1,4 @@
-""" Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+""" Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ import argparse
 import json
 import numpy as np
 import sophon.sail as sail
-
 class PreProcessor:
   """ Preprocessing class.
   """
@@ -98,7 +97,10 @@ class PostProcessor:
     Returns:
       True for success and False for failure
     """
-    if not reference or loop_id > 0:
+    if not reference:
+      print("No verify_files file or verify_files err.")
+      return True
+    if loop_id > 0:
       return True
     data = []
     for line in result:
@@ -215,7 +217,7 @@ if __name__ == '__main__':
   PARSER.add_argument('--tpu_id', default=0, type=int, required=False)
   PARSER.add_argument('--compare', default='', required=False)
   ARGS = PARSER.parse_args()
-  if not os.path.isfile(ARGS.input):
+  if not os.path.exists(ARGS.input):
     print("Error: {} not exists!".format(ARGS.input))
     sys.exit(-2)
   status = inference(ARGS.bmodel, ARGS.input, \

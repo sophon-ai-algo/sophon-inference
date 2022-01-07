@@ -11,7 +11,7 @@ det_yolov3_1|video|bm-ffmpeg|bmcv|fp32/int8|yolov3|static|1|Y
 
 ```shell
 # download bmodel to current directory.
-# download.py is in directory of source repo: tools/
+# download.py is in directory examples/sail/sc5_tests
 python3 ./download.py yolov3_fp32.bmodel
 python3 ./download.py yolov3_int8.bmodel
 # you can also download the raw model

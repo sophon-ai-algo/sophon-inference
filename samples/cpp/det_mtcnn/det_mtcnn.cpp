@@ -1,4 +1,4 @@
-/* Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+/* Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,12 @@ You may obtain a copy of the License at
 
 ==============================================================================*/
 
+#ifdef _WIN32
+#include "getopt_win.h"
+#else
 #include <getopt.h>
+#endif
+
 #include <string>
 #include <vector>
 #include <map>
@@ -45,12 +50,23 @@ std::vector<FaceInfo> run_pnet(
   int height = image.rows;
   int width = image.cols;
   auto input_name = engine.get_input_names(graph_name).front();
+  auto  map_maxinput_shape = engine.get_max_input_shapes(graph_name);
+  std::vector<int> maxinput_shape;
+  for (auto max_shape : map_maxinput_shape){
+    if(strcmp(input_name.c_str(),max_shape.first.c_str()) == 0){
+        maxinput_shape = max_shape.second;
+        break;
+    }
+  }
   auto scales = preprocessor.generate_scales(height, width);
   float* input = reinterpret_cast<float*>(
       engine.get_input_tensor(graph_name, input_name)->sys_data());
   for (auto scale : scales) {
     int scaled_h = ceil(height * scale);
     int scaled_w = ceil(width * scale);
+    if ((scaled_h> maxinput_shape[2]) || (scaled_w > maxinput_shape[3])) {
+        continue;
+    }
     std::map<std::string, std::vector<int>> shape;
     shape[input_name] = {1, 3, scaled_h, scaled_w};
     // preprocess
@@ -232,12 +248,12 @@ std::vector<FaceInfo> run_onet(
  * @param faceinfos Detected boxes
  * @param tpu_id    TPU ID
  */
-void print_result(std::vector<FaceInfo>& faceinfos, int tpu_id) {
+void print_result(std::vector<FaceInfo>& faceinfos, int tpu_id, int loop) {
   if (faceinfos.size() == 0) {
     spdlog::error("No face was detected in this image!");
     return;
   }
-  spdlog::info("---------  MTCNN DETECTION RESULT ON TPU {} ---------", tpu_id);
+  spdlog::info("---------  MTCNN DETECTION RESULT ON TPU {} OF LOOP {}---------", tpu_id, loop);
   for (size_t i = 0; i < faceinfos.size(); i++) {
     cv::Rect rc;
     rc.x = (faceinfos[i].bbox.x1) > 0 ? faceinfos[i].bbox.x1 : 0;
@@ -247,6 +263,26 @@ void print_result(std::vector<FaceInfo>& faceinfos, int tpu_id) {
     spdlog::info("Face {} Box: [{}, {}, {}, {}], Score: {}",
                  i, rc.x, rc.y, rc.width, rc.height, faceinfos[i].bbox.score);
   }
+}
+
+void draw_result(std::vector<FaceInfo>& faceinfos, int tpu_id, int loop, cv::Mat &img)
+{
+    if (faceinfos.size() == 0) {
+        spdlog::error("No face was detected in this image!");
+        return;
+    }
+    spdlog::info("---------  MTCNN DETECTION RESULT ON TPU {} OF LOOP {}---------", tpu_id, loop);
+    for (size_t i = 0; i < faceinfos.size(); i++) {
+        cv::Rect rc;
+        rc.x = (faceinfos[i].bbox.x1) > 0 ? faceinfos[i].bbox.x1 : 0;
+        rc.y = (faceinfos[i].bbox.y1) > 0 ? faceinfos[i].bbox.y1 : 0;
+        rc.width = faceinfos[i].bbox.x2 - faceinfos[i].bbox.x1;
+        rc.height = faceinfos[i].bbox.y2 - faceinfos[i].bbox.y1;
+
+        cv::rectangle(img, rc, cv::Scalar(0, 255,0), 2);
+    }
+
+    cv::imwrite("mtcnn.jpg", img.t());
 }
 
 /**
@@ -277,6 +313,7 @@ bool det_mtcnn(
   // read image
   cv::Mat frame = cv::imread(input_path);
   cv::Mat image = frame.t();
+
   bool status = true;
   for (int i = 0; i < loops; ++i) {
     // run PNet, the first stage of MTCNN
@@ -291,7 +328,10 @@ bool det_mtcnn(
     }
     // print_result
     if (postprocessor.compare(reference, boxes)) {
-      print_result(boxes, tpu_id);
+      print_result(boxes, tpu_id, i);
+#if 0
+      draw_result(boxes, tpu_id, i, image);
+#endif
     } else {
       status = false;
       break;
@@ -356,6 +396,10 @@ int main(int argc, char** argv) {
     return -2;
   }
   // load bmodel and do inference
-  bool status = det_mtcnn(bmodel_path, input_path, tpu_id, loops, compare_path);
-  return status ? 0 : -1;
+  bool ret;
+  while(loops-- > 0) {
+      ret = det_mtcnn(bmodel_path, input_path, tpu_id, 5, compare_path);
+      if (!ret) return ret;
+  }
+  return 0;
 }

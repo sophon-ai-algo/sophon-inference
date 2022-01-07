@@ -13,7 +13,7 @@ det_mtcnn|image|opencv|opencv|fp32|mtcnn|dynamic
 
 ```shell
 # download bmodel to current directory.
-# download.py is in directory of source repo: tools/
+# download.py is in directory examples/sail/sc5_tests
 python3 ./download.py mtcnn_fp32.bmodel
 # you can also download the raw model
 python3 ./download.py mtcnn_caffe.tgz

@@ -12,9 +12,13 @@ PACKAGES_X86 = ['sophon', 'sophon.auto_split', 'sophon.auto_split.common',
                 'sophon.auto_split.compiler', 'sophon.auto_split.external',
                 'sophon.auto_split.splitter']
 
+filehandle = open("../../../git_version","r");
+git_version = filehandle.readline();
+print(git_version);
+
 # wrap sophon python module
 setup(name='sophon_x86',
-      version='2.1.0',
+      version=git_version,
       description='Inference samples for deep learning on Sophon products.',
       author='Sophon algorithm team',
       author_email='hong.liu@bitmain.com',

@@ -1,4 +1,4 @@
-/* Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+/* Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,11 +79,11 @@ struct DetectRect {
 
   bool operator==(const DetectRect& t) const {
     return (t.class_id == this->class_id &&
-            std::abs(t.x1 - this->x1) < 1e-2 &&
-            std::abs(t.y1 - this->y1) < 1e-2 &&
-            std::abs(t.x2 - this->x2) < 1e-2 &&
-            std::abs(t.y2 - this->y2) < 1e-2 &&
-            std::abs(t.score - this->score) < 1e-4);
+            std::abs(t.x1 - this->x1) < 2 &&
+            std::abs(t.y1 - this->y1) < 2 &&
+            std::abs(t.x2 - this->x2) < 2 &&
+            std::abs(t.y2 - this->y2) < 2 &&
+            std::abs(t.score - this->score) < 1.8e-1);
   }
 };
 

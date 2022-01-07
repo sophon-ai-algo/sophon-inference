@@ -3,7 +3,7 @@
 
 在本章中，我们将帮助你快速地将一个由 tensorflow 训练生成的 mobilenet 部署到 Sophon SC5 加速卡上。
 在这之前，你需要准备一台安装了 Sophon SC5 加速卡的个人电脑，操作系统建议为 Ubuntu16.04。
-另外，你还需要一份 BMNNSDK 的软件包。
+另外，你还需要一份 BMNNSDK 的软件包。软件包可以在官网下载（https://sophon.cn/drive/index.html）或者联系售前以及FAE获取。
 
 本教程包含三个步骤。
 首先，你需要安装驱动、bmnett、和sophon-inference。

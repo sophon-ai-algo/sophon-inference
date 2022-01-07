@@ -19,23 +19,21 @@ You may obtain a copy of the License at
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h"
 #include "engine.h"
+#include "internal.h"
+#include <iostream>
+#include <fstream>
+#include <chrono>
 #ifdef PYTHON
 #include <pybind11/detail/common.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #endif
 
-// using simd intrinsic accelarate scale op
-#if defined(__amd64__) || defined(__x86_64__)
-#include <x86intrin.h>
-#elif defined(__arm__) || defined(__aarch64__)
-#include <arm_neon.h>
-#endif
 
 namespace sail {
 
 Engine::Engine(int tpu_id)
-    : io_mode_(DEVIO), handle_(tpu_id), p_bmrt_(nullptr) {
+        : io_mode_(SYSIO), handle_(tpu_id), p_bmrt_(nullptr) {
   init_bmrt();
 }
 
@@ -48,9 +46,6 @@ Engine::Engine(
     return;
   }
   if (!load(bmodel_path)) {
-    return;
-  }
-  if (alloc_tensors()) {
     return;
   }
 }
@@ -67,13 +62,10 @@ Engine::Engine(
   if (!load(bmodel_ptr, bmodel_size)) {
     return;
   }
-  if (alloc_tensors()) {
-    return;
-  }
-}
+ }
 
 Engine::Engine(const Handle& handle)
-    : io_mode_(DEVIO), handle_(handle), p_bmrt_(nullptr) {
+    : io_mode_(SYSIO), handle_(handle), p_bmrt_(nullptr) {
   init_bmrt();
 }
 
@@ -88,9 +80,7 @@ Engine::Engine(
   if (!load(bmodel_path)) {
     return;
   }
-  if (alloc_tensors()) {
-    return;
-  }
+
 }
 
 Engine::Engine(
@@ -103,9 +93,6 @@ Engine::Engine(
     return;
   }
   if (!load(bmodel_ptr, bmodel_size)) {
-    return;
-  }
-  if (alloc_tensors()) {
     return;
   }
 }
@@ -168,6 +155,7 @@ bool Engine::load(const std::string& bmodel_path) {
     spdlog::error("Load {} failed", bmodel_path);
     exit(SAIL_ERR_ENGINE_INIT);
   }
+
   std::vector<std::string> current_graph_names = get_graph_names();
   std::vector<std::string> update_graph_names(
       current_graph_names.begin() + previous_graph_names.size(),
@@ -179,12 +167,12 @@ bool Engine::load(const std::string& bmodel_path) {
 bool Engine::load(const void* bmodel_ptr, size_t bmodel_size) {
   // check bmodel is exist or not
   if (bmodel_size <= 0) {
-    spdlog::error("bmodel path does not exist");
+    SPDLOG_ERROR("bmodel path does not exist");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   std::vector<std::string> previous_graph_names = get_graph_names();
   if (!bmrt_load_bmodel_data(p_bmrt_, bmodel_ptr, bmodel_size)) {
-    spdlog::error("Load bmodel failed");
+    SPDLOG_ERROR("Load bmodel failed");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   std::vector<std::string> current_graph_names = get_graph_names();
@@ -343,7 +331,7 @@ int Engine::reshape(
     std::map<std::string, std::vector<int>>& input_shapes) {
   int ret = is_input_shape_valid(graph_name, input_shapes);
   if (ret) {
-    spdlog::error("Reshape failed.");
+    SPDLOG_ERROR("Reshape failed.");
     exit(SAIL_ERR_ENGINE_INNER);
   }
   input_shapes_[graph_name] = input_shapes;
@@ -367,22 +355,27 @@ void Engine::scale_input_tensor(
     const std::string& graph_name,
     const std::string& tensor_name,
     float*             data) {
-  void* tensor =
+  void* tensor_sys_mem =
       graphs_[graph_name]->get_input_tensor(tensor_name)->sys_data();
   std::vector<int> shape = get_input_shape(graph_name, tensor_name);
-  int size = std::accumulate(shape.begin(), shape.end(),
-                             1, std::multiplies<int>());
+  int size = shape_size(shape);
   if (input_dtypes_[graph_name][tensor_name] == BM_FLOAT32) {
-    float* target = reinterpret_cast<float*>(tensor);
+    float* target = reinterpret_cast<float*>(tensor_sys_mem);
     memcpy(target, data, size * sizeof(float));
   } else if (input_dtypes_[graph_name][tensor_name] == BM_INT8) {
     float scale = get_input_scale(graph_name, tensor_name);
-    int8_t* target = reinterpret_cast<int8_t*>(tensor);
+    int8_t* target = reinterpret_cast<int8_t*>(tensor_sys_mem);
     scale_fp32_to_int8(data, target, scale, size);
   } else if (input_dtypes_[graph_name][tensor_name] == BM_UINT8) {
     float scale = get_input_scale(graph_name, tensor_name);
-    uint8_t* target = reinterpret_cast<uint8_t*>(tensor);
+    uint8_t* target = reinterpret_cast<uint8_t*>(tensor_sys_mem);
     scale_fp32_to_uint8(data, target, scale, size);
+  } else if (input_dtypes_[graph_name][tensor_name] == BM_INT32) {
+    float scale = get_input_scale(graph_name, tensor_name);
+    int32_t* target = reinterpret_cast<int32_t*>(tensor_sys_mem);
+    scale_fp32_to_int32(data, target, scale, size);
+  }else{
+      SPDLOG_ERROR("scale_input_tensor() not support!");
   }
 }
 
@@ -390,154 +383,111 @@ void Engine::scale_output_tensor(
     const std::string& graph_name,
     const std::string& tensor_name,
     float*             data) {
-  void* tensor =
-      graphs_[graph_name]->get_output_tensor(tensor_name)->sys_data();
+    if (NULL == data) {
+        SPDLOG_ERROR("param err, input parameter:data=null");
+        return;
+    }
+
+  void* tensor = graphs_[graph_name]->get_output_tensor(tensor_name)->sys_data();
+    if (NULL == tensor) {
+        SPDLOG_ERROR("sys_data() is null, must set own_sys_data is True");
+        return;
+    }
+
   std::vector<int> shape = get_output_shape(graph_name, tensor_name);
-  int size = std::accumulate(shape.begin(), shape.end(),
-                             1, std::multiplies<int>());
+  int size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
   if (output_dtypes_[graph_name][tensor_name] == BM_FLOAT32) {
-    float* target = reinterpret_cast<float*>(tensor);
-    memcpy(data, target, size * sizeof(float));
+    float* src = reinterpret_cast<float*>(tensor);
+    memcpy(data, src, size * sizeof(float));
   } else if (output_dtypes_[graph_name][tensor_name] == BM_INT8) {
     float scale = get_output_scale(graph_name, tensor_name);
-    int8_t* target = reinterpret_cast<int8_t*>(tensor);
-    scale_int8_to_fp32(target, data, scale, size);
+    int8_t* src = reinterpret_cast<int8_t*>(tensor);
+    scale_int8_to_fp32(src, data, scale, size);
   } else if (output_dtypes_[graph_name][tensor_name] == BM_UINT8) {
     float scale = get_output_scale(graph_name, tensor_name);
-    uint8_t* target = reinterpret_cast<uint8_t*>(tensor);
-    scale_uint8_to_fp32(target, data, scale, size);
+    uint8_t* src = reinterpret_cast<uint8_t*>(tensor);
+    scale_uint8_to_fp32(src, data, scale, size);
+  } else if (output_dtypes_[graph_name][tensor_name] == BM_INT32) {
+    float scale = get_output_scale(graph_name, tensor_name);
+    int32_t* src = reinterpret_cast<int32_t*>(tensor);
+    scale_int32_to_fp32(src, data, scale, size);
   }
 }
 
-// x86 sse simd
-#if defined(__amd64__) || defined(__x86_64__)
 void Engine::scale_fp32_to_int8(float* src, int8_t* dst, float scale, int size) {
-  __m128  vec4fp32;
-  __m128i vec4int;
-  __m128  vec4scales = _mm_set1_ps(scale);
-  for (int i = 0; i < size; i+=4) {
-    vec4fp32 = _mm_load_ps(src+i);
-    vec4fp32 = _mm_mul_ps(vec4fp32, vec4scales);
-    vec4int = _mm_cvtps_epi32(vec4fp32);
-    vec4int = _mm_packs_epi32(vec4int, vec4int);
-    vec4int = _mm_packs_epi16(vec4int, vec4int);
-    *reinterpret_cast<int*>(dst+i) = _mm_cvtsi128_si32(vec4int);
-  }
-}
-
-void Engine::scale_fp32_to_uint8(float* src, uint8_t* dst, float scale, int size) {
-  __m128  vec4fp32;
-  __m128i vec4int;
-  __m128  vec4scales = _mm_set1_ps(scale);
-  for (int i = 0; i < size; i+=4) {
-    vec4fp32 = _mm_load_ps(src+i);
-    vec4fp32 = _mm_mul_ps(vec4fp32, vec4scales);
-    vec4int = _mm_cvtps_epi32(vec4fp32);
-    vec4int = _mm_packus_epi32(vec4int, vec4int);
-    vec4int = _mm_packus_epi16(vec4int, vec4int);
-    *reinterpret_cast<int*>(dst+i) = _mm_cvtsi128_si32(vec4int);
-  }
-}
-
-void Engine::scale_int8_to_fp32(int8_t* src, float* dst, float scale, int size) {
-  __m128  vec4scales = _mm_set1_ps(scale);
-  __m128i vec4int;
-  __m128  vec4fp32;
-  for (int i = 0; i < size; i+=4) {
-    vec4int = _mm_cvtsi32_si128(*reinterpret_cast<int*>(src+i));
-    vec4int = _mm_unpacklo_epi8(vec4int,  _mm_cmplt_epi8(vec4int, _mm_setzero_si128()));
-    vec4int = _mm_unpacklo_epi16(vec4int, _mm_cmplt_epi8(vec4int, _mm_setzero_si128()));
-    vec4fp32 = _mm_cvtepi32_ps(vec4int);
-    vec4fp32 = _mm_mul_ps(vec4fp32, vec4scales);
-    _mm_store_ps(dst+i, vec4fp32);
-  }
-}
-
-void Engine::scale_uint8_to_fp32(uint8_t* src, float* dst, float scale, int size) {
-  __m128  vec4scales = _mm_set1_ps(scale);
-  __m128i vec4int;
-  __m128  vec4fp32;
-  for (int i = 0; i < size; i+=4) {
-    vec4int = _mm_cvtsi32_si128(*reinterpret_cast<int*>(src+i));
-    vec4int = _mm_unpacklo_epi8(vec4int, _mm_setzero_si128());
-    vec4int = _mm_unpacklo_epi16(vec4int, _mm_setzero_si128());
-    vec4fp32 = _mm_cvtepi32_ps(vec4int);
-    vec4fp32 = _mm_mul_ps(vec4fp32, vec4scales);
-    _mm_store_ps(dst+i, vec4fp32);
-  }
-}
-// arm using simd neon TODO, now only accelate by omp
-#elif defined(__arm__) || defined(__aarch64__)
-void Engine::scale_fp32_to_int8(float* src, int8_t* dst, float scale, int size) {
-  int8x8_t  vec_s8x8; // target 8 x int8
-  int32x4_t vec_s32x4_l, vec_s32x4_h;
-  int32x4_t min_val = vdupq_n_s32(-128);
-  int32x4_t max_val = vdupq_n_s32(127);
-  float32x4_t vec_f32x4_l, vec_f32x4_h;
-  for (int i = 0; i < size; i+=8) {
-    vec_f32x4_l = vld1q_f32(src+i);
-    vec_f32x4_h = vld1q_f32(src+i+4);
-    vec_f32x4_l = vmulq_n_f32(vec_f32x4_l, scale);
-    vec_f32x4_h = vmulq_n_f32(vec_f32x4_h, scale);
-    vec_s32x4_l = vcvtnq_s32_f32(vec_f32x4_l);
-    vec_s32x4_h = vcvtnq_s32_f32(vec_f32x4_h);
-    vec_s32x4_l = vminq_s32(vmaxq_s32(vec_s32x4_l, min_val), max_val);
-    vec_s32x4_h = vminq_s32(vmaxq_s32(vec_s32x4_h, min_val), max_val);
-    vec_s8x8 = vmovn_s16(vcombine_s16(vmovn_s32(vec_s32x4_l), vmovn_s32(vec_s32x4_h)));
-    vst1_s8(dst+i, vec_s8x8);
-  }
-}
-
-void Engine::scale_fp32_to_uint8(float* src, uint8_t* dst, float scale, int size) {
-  uint8x8_t  vec_u8x8; // target 8 x int8
-  uint32x4_t vec_u32x4_l, vec_u32x4_h;
-  uint32x4_t min_val = vdupq_n_u32(0);
-  uint32x4_t max_val = vdupq_n_u32(255);
-  float32x4_t vec_f32x4_l, vec_f32x4_h;
-  for (int i = 0; i < size; i+=8) {
-    vec_f32x4_l = vld1q_f32(src+i);
-    vec_f32x4_h = vld1q_f32(src+i+4);
-    vec_f32x4_l = vmulq_n_f32(vec_f32x4_l, scale);
-    vec_f32x4_h = vmulq_n_f32(vec_f32x4_h, scale);
-    vec_u32x4_l = vcvtnq_u32_f32(vec_f32x4_l);
-    vec_u32x4_h = vcvtnq_u32_f32(vec_f32x4_h);
-    vec_u32x4_l = vminq_u32(vmaxq_u32(vec_u32x4_l, min_val), max_val);
-    vec_u32x4_h = vminq_u32(vmaxq_u32(vec_u32x4_h, min_val), max_val);
-    vec_u8x8 = vmovn_u16(vcombine_u16(vmovn_u32(vec_u32x4_l), vmovn_u32(vec_u32x4_h)));
-    vst1_u8(dst+i, vec_u8x8);
-  }
-}
-
-void Engine::scale_int8_to_fp32(int8_t* src, float* dst, float scale, int size) {
-  int8x8_t    vec_s8x8;
-  int32x4_t   vec_s32x4;
-  float32x4_t vec_f32x4;
-  for (int i = 0; i < size; i+=4) {
-    vec_s8x8  = vld1_s8(src+i);
-    vec_s8x8  = vget_low_s8(vcombine_s8(vec_s8x8, vcreate_s8(0)));
-    vec_s32x4 = vmovl_s16(vget_low_s16(vmovl_s8(vec_s8x8)));
-    vec_f32x4 = vcvtq_f32_s32(vec_s32x4);
-    vec_f32x4 = vmulq_n_f32(vec_f32x4, scale);
-    vst1q_f32(dst+i, vec_f32x4);
-  }
-}
-
-void Engine::scale_uint8_to_fp32(uint8_t* src, float* dst, float scale, int size) {
-  uint8x8_t   vec_u8x8;
-  uint32x4_t  vec_u32x4;
-  float32x4_t vec_f32x4;
-  for (int i = 0; i < size; i+=4) {
-    vec_u8x8  = vld1_u8(src+i);
-    vec_u8x8  = vget_low_u8(vcombine_u8(vec_u8x8, vcreate_u8(0)));
-    vec_u32x4 = vmovl_u16(vget_low_u16(vmovl_u8(vec_u8x8)));
-    vec_f32x4 = vcvtq_f32_u32(vec_u32x4);
-    vec_f32x4 = vmulq_n_f32(vec_f32x4, scale);
-    vst1q_f32(dst+i, vec_f32x4);
-  }
-}
+    if (NULL == src || NULL == dst) {
+        SPDLOG_ERROR("param err, src=0x{}, dst={}", src, dst);
+        return;
+    }
+#if USE_ASM_SSE
+    AnyScale_SSE(src, BM_FLOAT32, dst, BM_INT8, scale, size);
+#else
+    AnyScale(src, BM_FLOAT32, dst, BM_INT8, scale, size);
 #endif
+}
+
+void Engine::scale_fp32_to_uint8(float* src, uint8_t* dst, float scale, int size) {
+    if (NULL == src || NULL == dst) {
+        SPDLOG_ERROR("param err, src={}, dst={}", src, dst);
+        return;
+    }
+#if USE_ASM_SSE
+    AnyScale_SSE(src, BM_FLOAT32, dst, BM_UINT8, scale, size);
+#else
+    AnyScale(src, BM_FLOAT32, dst, BM_UINT8, scale, size);
+#endif
+}
+
+void Engine::scale_fp32_to_int32(float* src, int32_t* dst, float scale, int size){
+    if (NULL == src || NULL == dst) {
+        SPDLOG_ERROR("param err, src={}, dst={}", src, dst);
+        return;
+    }
+#if USE_ASM_SSE
+    AnyScale_SSE(src, BM_FLOAT32, dst, BM_INT32, scale, size);
+#else
+    AnyScale(src, BM_FLOAT32, dst, BM_INT32, scale, size);
+#endif
+}
+
+void Engine::scale_int8_to_fp32(int8_t* src, float* dst, float scale, int size) {
+    if (NULL == src || NULL == dst) {
+        SPDLOG_ERROR("param err, src={}, dst={}", src, dst);
+        return;
+    }
+#if USE_ASM_SSE
+    AnyScale_SSE(src, BM_INT8, dst, BM_FLOAT32, scale, size);
+#else
+    AnyScale(src, BM_INT8, dst, BM_FLOAT32, scale, size);
+#endif
+}
+
+void Engine::scale_uint8_to_fp32(uint8_t* src, float* dst, float scale, int size) {
+    if (NULL == src || NULL == dst) {
+        SPDLOG_ERROR("param err, src={}, dst={}", src, dst);
+        return;
+    }
+#if USE_ASM_SSE
+     AnyScale_SSE(src, BM_UINT8, dst, BM_FLOAT32, scale, size);
+#else
+     AnyScale(src, BM_UINT8, dst, BM_FLOAT32, scale, size);
+#endif
+}
+
+void Engine::scale_int32_to_fp32(int32_t* src, float* dst, float scale, int size) {
+    if (NULL == src || NULL == dst) {
+        SPDLOG_ERROR("param err, src={}, dst={}", src, dst);
+        return;
+    }
+#if USE_ASM_SSE
+     AnyScale_SSE(src, BM_INT32, dst, BM_FLOAT32, scale, size);
+#else
+     AnyScale(src, BM_INT32, dst, BM_FLOAT32, scale, size);
+#endif
+}
 
 void Engine::process(const std::string& graph_name) {
+    TRACE_POINT;
   graphs_[graph_name]->inference();
 }
 
@@ -545,10 +495,14 @@ void Engine::process(
     const std::string&                       graph_name,
     std::map<std::string, std::vector<int>>& input_shapes,
     std::map<std::string, void*>&            input_tensors) {
+    TRACE_POINT;
   reshape(graph_name, input_shapes);
   for (auto& item : input_tensors) {
     if (input_dtypes_[graph_name][item.first] == BM_FLOAT32) {
       graphs_[graph_name]->reset_input_tensor(item.first, item.second);
+    }else{
+        SPDLOG_ERROR("input_dtype{} is {}, not supported", item.first, input_dtypes_[graph_name][item.first]);
+        exit(EXIT_FAILURE);
     }
   }
   graphs_[graph_name]->inference();
@@ -559,6 +513,7 @@ void Engine::process(
     std::map<std::string, Tensor*>&          input_tensors,
     std::map<std::string, std::vector<int>>& input_shapes,
     std::map<std::string, Tensor*>&          output_tensors) {
+    TRACE_POINT;
   output_shapes_[graph_name] = graphs_[graph_name]->inference(
       input_tensors, input_shapes, output_tensors);
 }
@@ -567,6 +522,7 @@ void Engine::process(
     const std::string&              graph_name,
     std::map<std::string, Tensor*>& input_tensors,
     std::map<std::string, Tensor*>& output_tensors) {
+    TRACE_POINT;
   output_shapes_[graph_name] = graphs_[graph_name]->inference(
       input_tensors, output_tensors);
 }
@@ -574,7 +530,7 @@ void Engine::process(
 int Engine::init_bmrt() {
   p_bmrt_ = bmrt_create(handle_.data());
   if (!p_bmrt_) {
-    spdlog::error("Init bmruntime failed.");
+    SPDLOG_ERROR("bmrt_create failed.");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   return 0;
@@ -595,12 +551,12 @@ int Engine::is_input_shape_valid(
     auto tensor_name = item.first;
     auto it = std::find(input_names.begin(), input_names.end(), tensor_name);
     if (it == input_names.end()) {
-      spdlog::error("Bad input tensor '{}' for {}.", tensor_name, graph_name);
+      SPDLOG_ERROR("Bad input tensor '{}' for {}.", tensor_name, graph_name);
       exit(SAIL_ERR_ENGINE_INNER);
     }
     std::vector<int>& max_shape = max_input_shapes_[graph_name][tensor_name];
     if (item.second.size() != max_shape.size()) {
-      spdlog::error("Bad dimension of input tensor {} for {}, {}(N) vs {}(Y)",
+      SPDLOG_ERROR("Bad dimension of input tensor {} for {}, {}(N) vs {}(Y)",
                     tensor_name, graph_name, item.second.size(),
                     max_shape.size());
       exit(SAIL_ERR_ENGINE_INNER);
@@ -609,7 +565,7 @@ int Engine::is_input_shape_valid(
       std::string msg("Invalid value at dim {} for input tensor '{}': {}");
       for (size_t i = 0; i < max_shape.size(); ++i) {
         if (item.second[i] > max_shape[i] || item.second[i] <= 0) {
-          spdlog::error(msg.c_str(), i, tensor_name, item.second[i]);
+          SPDLOG_ERROR(msg.c_str(), i, tensor_name, item.second[i]);
           exit(SAIL_ERR_ENGINE_INNER);
         }
       }
@@ -631,28 +587,10 @@ int Engine::is_input_shape_valid(
         }
       }
       if (!flag) {
-        spdlog::error("Invalid shape for input tensor '{}': [{}]",
+        SPDLOG_ERROR("Invalid shape for input tensor '{}': [{}]",
                       tensor_name, fmt::join(item.second, ", "));
         exit(SAIL_ERR_ENGINE_INNER);
       }
-    }
-  }
-  return 0;
-}
-
-int Engine::alloc_tensors() {
-  /** For some models, output shapes are not fixed and are comfirmed after
-   *  launching. So system memory and device memory for output tensors are
-   *  allocated for the maximum shapes.
-   */
-  auto graph_names = get_graph_names();
-  for (auto graph_name : graph_names) {
-    int ret = graphs_[graph_name]->alloc_tensors(io_mode_,
-                                                 &input_shapes_[graph_name],
-                                                 &output_shapes_[graph_name]);
-    if (ret) {
-      spdlog::error("Allocate tensors failed.");
-      exit(SAIL_ERR_ENGINE_INNER);
     }
   }
   return 0;
@@ -680,6 +618,14 @@ int Engine::update_status(std::vector<std::string> graph_names) {
     }
     graphs_[graph_name]->init_dtypes(&input_dtypes_[graph_name],
                                      &output_dtypes_[graph_name]);
+
+      int ret = graphs_[graph_name]->alloc_tensors(io_mode_,
+                                                   &input_shapes_[graph_name],
+                                                   &output_shapes_[graph_name]);
+      if (ret) {
+          SPDLOG_ERROR("Allocate tensors failed.");
+          exit(SAIL_ERR_ENGINE_INNER);
+      }
   }
   return 0;
 }
@@ -703,20 +649,17 @@ Engine::Engine(
   char* bmodel_ptr = nullptr;
   ssize_t size;
   if (PYBIND11_BYTES_AS_STRING_AND_SIZE(bmodel.ptr(), &bmodel_ptr, &size)) {
-    spdlog::error("Unable to extract bytes contents!");
+    SPDLOG_ERROR("Unable to extract bytes contents!");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   if (bmodel_size != static_cast<int>(size)) {
-    spdlog::error("Wrong bmodel_size.");
+    SPDLOG_ERROR("Wrong bmodel_size.");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   if (init_bmrt()) {
     return;
   }
   if (load(bmodel_ptr, bmodel_size)) {
-    return;
-  }
-  if (alloc_tensors()) {
     return;
   }
 }
@@ -730,20 +673,17 @@ Engine::Engine(
   char* bmodel_ptr = nullptr;
   ssize_t size;
   if (PYBIND11_BYTES_AS_STRING_AND_SIZE(bmodel.ptr(), &bmodel_ptr, &size)) {
-    spdlog::error("Unable to extract bytes contents!");
+    SPDLOG_ERROR("Unable to extract bytes contents!");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   if (bmodel_size != static_cast<int>(size)) {
-    spdlog::error("Wrong bmodel_size.");
+    SPDLOG_ERROR("Wrong bmodel_size.");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   if (init_bmrt()) {
     return;
   }
   if (load(bmodel_ptr, bmodel_size)) {
-    return;
-  }
-  if (alloc_tensors()) {
     return;
   }
 }
@@ -754,11 +694,11 @@ bool Engine::load(
   char* bmodel_ptr = nullptr;
   ssize_t size;
   if (PYBIND11_BYTES_AS_STRING_AND_SIZE(bmodel.ptr(), &bmodel_ptr, &size)) {
-    spdlog::error("Unable to extract bytes contents!");
+    SPDLOG_ERROR("Unable to extract bytes contents!");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   if (bmodel_size != static_cast<int>(size)) {
-    spdlog::error("Wrong bmodel_size.");
+    SPDLOG_ERROR("Wrong bmodel_size.");
     exit(SAIL_ERR_ENGINE_INIT);
   }
   if (!load(bmodel_ptr, bmodel_size)) {
@@ -767,11 +707,13 @@ bool Engine::load(
   return true;
 }
 
+using namespace pybind11::detail;
 std::map<std::string, pybind11::array_t<float>> Engine::process(
     const std::string&                               graph_name,
     std::map<std::string, pybind11::array_t<float>>& input_tensors) {
   std::map<std::string, std::vector<int>> shapes;
   std::map<std::string, float*> tensors;
+  TRACE_POINT;
   for (auto& item : input_tensors) {
     std::string name = std::string(pybind11::str(item.first));
     auto buf = item.second.request();
@@ -781,7 +723,37 @@ std::map<std::string, pybind11::array_t<float>> Engine::process(
     }
     shapes[name] = shape;
     tensors[name] = reinterpret_cast<float*>(buf.ptr);
+   
+    //check if need to move data, support 4-D tensor
+    if (!pybind11::detail::check_flags(item.second.ptr(), pybind11::detail::npy_api::NPY_ARRAY_C_CONTIGUOUS_) && buf.shape.size() == 4) {
+      int length=1;
+      
+      for (auto it: buf.shape){
+        length *= int(it);
+      }
+      
+      std::unique_ptr<float []> tmp(new float[length]);
+      for (int i =0; i < buf.shape[0]; i++){
+          for (int j=0; j < buf.shape[1]; j++){
+            for (int k=0; k< buf.shape[2]; k++){
+              for (int m=0; m < buf.shape[3]; m++) {
+               
+                *(float *)(tmp.get() + i*buf.shape[1]*buf.shape[2]*buf.shape[3] + j*buf.shape[2]*buf.shape[3] + k * buf.shape[3] + m) = \
+                  *((float *)buf.ptr + i* buf.strides[0]/sizeof(float) + j*buf.strides[1]/sizeof(float) + k*buf.strides[2]/sizeof(float) + m*buf.strides[3]/sizeof(float));
+                  
+              }
+            }
+          }
+      }
+
+      memcpy((void *)buf.ptr, (void *)tmp.get(), length*sizeof(float)); 
+      //don't change the strides
+      pybind11::detail::array_proxy(item.second.ptr())->flags |=  pybind11::detail::npy_api::NPY_ARRAY_C_CONTIGUOUS_;
+    }
+
   }
+  
+  auto start = std::chrono::system_clock::now();
   reshape(graph_name, shapes);
   for (auto& item : tensors) {
     if (input_dtypes_[graph_name][item.first] == BM_FLOAT32) {
@@ -790,12 +762,21 @@ std::map<std::string, pybind11::array_t<float>> Engine::process(
       scale_input_tensor(graph_name, item.first, item.second);
     }
   }
+  auto end = std::chrono::system_clock::now();
+  auto duration_det =
+              std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
   graphs_[graph_name]->inference();
+  end = std::chrono::system_clock::now();
+  auto duration_rec =
+              std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
   std::map<std::string, pybind11::array_t<float>> output;
   shapes = output_shapes_[graph_name];
   for (auto& s : shapes) {
     if (output_dtypes_[graph_name][s.first] == BM_INT8
-        || output_dtypes_[graph_name][s.first] == BM_UINT8) {
+        || output_dtypes_[graph_name][s.first] == BM_UINT8
+        || output_dtypes_[graph_name][s.first] == BM_INT32) {
       std::vector<ssize_t> shape;
       for (auto v : s.second) {
         shape.push_back(static_cast<ssize_t>(v));
@@ -824,6 +805,11 @@ std::map<std::string, pybind11::array_t<float>> Engine::process(
       output[pybind11::str(s.first.c_str())] = pybind11::array_t<float>(buf);
     }
   }
+
+  end = std::chrono::system_clock::now();
+  auto duration_total =
+              std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
   return std::move(output);
 }
 
@@ -833,6 +819,7 @@ void Engine::process(
     std::map<std::string, Tensor&>& output_tensors) {
   std::map<std::string, Tensor*> inputs;
   std::map<std::string, Tensor*> outputs;
+  TRACE_POINT;
   for (auto& item : input_tensors) {
     inputs[item.first] = &item.second;
   }
@@ -840,6 +827,7 @@ void Engine::process(
     outputs[item.first] = &item.second;
   }
   process(graph_name, inputs, outputs);
+
 }
 
 void Engine::process(
@@ -849,6 +837,7 @@ void Engine::process(
     std::map<std::string, Tensor&>&          output_tensors) {
   std::map<std::string, Tensor*> inputs;
   std::map<std::string, Tensor*> outputs;
+  TRACE_POINT;
   for (auto& item : input_tensors) {
     inputs[item.first] = &item.second;
   }

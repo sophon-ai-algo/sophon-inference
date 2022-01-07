@@ -12,6 +12,10 @@ from setuptools import find_packages
 AARCH64_PATH = '../../../build/lib/sail.so'
 DST_PATH = './sophon'
 
+filehandle = open("../../../git_version","r");
+git_version = filehandle.readline();
+print(git_version);
+
 if os.path.exists(AARCH64_PATH):
   try:
     shutil.copy(AARCH64_PATH, DST_PATH)
@@ -28,7 +32,7 @@ if os.path.exists(AARCH64_PATH):
                       'sophon.algokit.engine', 'sophon.algokit.libs',
                       'sophon.algokit.libs.extend_layer', 'sophon.algokit.utils']
   setup(name='sophon_arm',
-        version='2.1.0',
+        version=git_version,
         description='Inference samples for deep learning on Sophon products.',
         author='Sophon algorithm team',
         author_email='hong.liu@bitmain.com',

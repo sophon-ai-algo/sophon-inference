@@ -1,4 +1,4 @@
-""" Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+""" Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ import os
 import argparse
 import threading
 import numpy as np
+import signal
 from sophon import sail
 from processor import preprocess
 from processor import postprocess
@@ -52,7 +53,7 @@ def thread_infer(thread_id, engine, input_path, loops, compare_path, status):
   input = sail.Tensor(handle, input_shape, in_dtype, True, True)
   output = sail.Tensor(handle, output_shape, out_dtype, True, True)
   input_tensors = {input_name:input}
-  ouptut_tensors = {output_name:output}
+  output_tensors = {output_name:output}
   # set io_mode
   engine.set_io_mode(graph_name, sail.SYSIO)
   reference = get_reference(compare_path)
@@ -68,7 +69,7 @@ def thread_infer(thread_id, engine, input_path, loops, compare_path, status):
       scale = engine.get_input_scale(graph_name, input_name)
       input_tensors[input_name].scale_from(image, scale)
     # inference
-    engine.process(graph_name, input_tensors, ouptut_tensors)
+    engine.process(graph_name, input_tensors, output_tensors)
     # scale output data if output data type is int8 or uint8
     if out_dtype == sail.BM_FLOAT32:
       output_data = output.asnumpy()
@@ -85,9 +86,14 @@ def thread_infer(thread_id, engine, input_path, loops, compare_path, status):
       return
   status[thread_id] = True
 
+def signal_handle():
+  print("INT*****")
+  sys.exit(0)
+
 def main():
   """ An example shows inference of one model by multiple threads on one TPU.
   """
+  signal.signal(signal.SIGINT, signal_handle)
   # init Engine
   engine = sail.Engine(ARGS.tpu_id)
   # load bmodel without builtin input and output tensors
@@ -101,10 +107,16 @@ def main():
     threads.append(threading.Thread(target=thread_infer,
         args=(i, engine, ARGS.input, ARGS.loops, ARGS.compare, status)))
   for i in range(thread_num):
+    threads[i].setDaemon(True)
     threads[i].start()
-  for i in range(thread_num):
-    threads[i].join()
-  # check status
+  while True:
+    alive=False
+    for t in threads:
+      alive = alive or t.isAlive()
+      if alive == True:
+        break
+    if not alive:
+      break
   for stat in status:
     if not stat:
       sys.exit(-1)

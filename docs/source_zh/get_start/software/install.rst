@@ -49,7 +49,7 @@ bmnetp 依赖 pytorch，bmnetm 依赖 mxnet。
 
     .. code-block:: shell
 
-       cd ${BMNNSDK}/scrips/
+       cd ${BMNNSDK}/scripts/
        # 安装 Quantization & Calibration Tool
        source envsetup_pcie.sh ufw
        # 安装 bmnetu
@@ -67,20 +67,20 @@ bmnetp 依赖 pytorch，bmnetm 依赖 mxnet。
 运行时工具安装
 ^^^^^^^^^^^^^^
 
-目前，需要安装的运行时工具只有 BMDriver 和 Sophon Inference 的 python 包。
+目前，在pcie模式下需要安装的运行时工具只有 BMDriver 和 Sophon Inference 的 python 包， soc模式已预装，请忽略此步骤。
 
-安装 BMDriver 需要 root 权限，BMDriver 会在主机上编译并安装到系统内核中。
+安装 BMDriver 应当在宿主机上进行，且需要 root 权限，BMDriver 会在主机上编译并安装到系统内核中。
 
     .. code-block:: shell
 
        cd ${BMNNSDK}/scripts/
        sudo ./install_driver_pcie.sh
 
-安装 Sophon Inference：
+安装 Sophon Inference 可以在宿主机上或者提供的基础开发docker环境中（推荐方式）进行：
 
     .. code-block:: shell
 
-       cd ${BMNNSDK}/examples/sail/x86/
+       cd ${BMNNSDK}/lib/sail/python3/pcie/py35
        pip3 install --user sophon-x.x.x-py3-none-any.whl
 
 

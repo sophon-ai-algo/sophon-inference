@@ -18,7 +18,7 @@ You may obtain a copy of the License at
 #include <type_traits>
 #include "spdlog/spdlog.h"
 #include "graph.h"
-
+#include "internal.h"
 namespace sail {
 
 Graph::Graph(
@@ -34,6 +34,7 @@ Graph::Graph(
     exit(SAIL_ERR_ENGINE_INIT);
   }
   init_graph_info();
+
 }
 
 void Graph::map_tensors(
@@ -41,18 +42,37 @@ void Graph::map_tensors(
     std::map<std::string, Tensor*>&          output,
     bm_tensor_t*                             bm_in,
     bm_tensor_t*                             bm_out) {
-  for (auto& item : input) {
-    auto idx = input_map_[item.first];
-    bm_in[idx].dtype = (*input_dtypes_)[item.first];
-    bm_in[idx].st_mode = BM_STORE_1N;
-    bm_in[idx].device_mem = item.second->dev_data();
-  }
-  for (auto& item : output) {
-    auto idx = output_map_[item.first];
-    bm_out[idx].dtype = (*output_dtypes_)[item.first];
-    bm_out[idx].st_mode = BM_STORE_1N;
-    bm_out[idx].device_mem = item.second->dev_data();
-  }
+  map_input_tensors(input, bm_in);
+  map_output_tensors(output, bm_out);
+}
+
+void Graph::map_input_tensors(std::map<std::string, sail::Tensor *> &input, bm_tensor_t *bm_in) {
+    for (auto& item : input) {
+        auto idx = input_map_[item.first];
+        bm_in[idx].dtype = (*input_dtypes_)[item.first];
+        bm_in[idx].st_mode = BM_STORE_1N;
+        auto& shape = item.second->shape();
+        bm_in[idx].shape.num_dims = shape.size();
+        for(int i = 0;i < shape.size(); ++i) {
+            bm_in[idx].shape.dims[i] = shape[i];
+        }
+        bm_in[idx].device_mem = item.second->dev_data();
+    }
+}
+
+void Graph::map_output_tensors(std::map<std::string, sail::Tensor *> &output, bm_tensor_t *bm_out) {
+    for (auto& item : output) {
+        auto idx = output_map_[item.first];
+        bm_out[idx].dtype = (*output_dtypes_)[item.first];
+        bm_out[idx].st_mode = BM_STORE_1N;
+        bm_out[idx].device_mem = item.second->dev_data();
+        auto& shape = item.second->shape();
+        bm_out[idx].shape.num_dims = shape.size();
+        for(int i = 0;i < shape.size(); ++i) {
+            bm_out[idx].shape.dims[i] = shape[i];
+        }
+        bm_memset_device(handle_, 0, bm_out[idx].device_mem);
+    }
 }
 
 void Graph::map_input_shapes(
@@ -78,6 +98,7 @@ int Graph::alloc_tensors(
   io_mode_ = io_mode;
   Handle handle(handle_);
 
+  assert(inputs_ == nullptr);
   inputs_ = new bm_tensor_t[input_map_.size()];
   bool own_sys_data = (io_mode_ == SYSI || io_mode_ == SYSIO);
   for (auto& item : *input_shapes) {
@@ -88,6 +109,7 @@ int Graph::alloc_tensors(
     input_tensors_[item.first] = tensor;
   }
 
+  assert(outputs_ == nullptr);
   outputs_ = new bm_tensor_t[output_map_.size()];
   own_sys_data = (io_mode_ == SYSO || io_mode_ == SYSIO);
   for (auto& item : *output_shapes) {
@@ -171,6 +193,9 @@ void Graph::reset_input_tensor(
     void*              data) {
   input_tensors_[tensor_name]->reset_sys_data(
       data, (*input_shapes_)[tensor_name]);
+
+  //Remap again, because device address may be reallocated.
+  map_input_tensors(input_tensors_, inputs_);
 }
 
 void Graph::init_graph_info() {
@@ -202,7 +227,12 @@ void Graph::input_s2d(
       type_size = sizeof(int8_t);
     } else if ((*input_dtypes_)[item.first] == BM_UINT8) {
       type_size = sizeof(uint8_t);
+    } else if ((*input_dtypes_)[item.first] == BM_INT32){
+      type_size = sizeof(int32_t);
+    }else{
+        SPDLOG_ERROR("unhandled input {}'s dtype={}", item.first, (*input_dtypes_)[item.first]);
     }
+
     int size = std::accumulate(input_shapes[item.first].begin(),
                input_shapes[item.first].end(), 1, std::multiplies<int>())
                * type_size;
@@ -225,22 +255,85 @@ void Graph::output_d2s(
       type_size = sizeof(int8_t);
     } else if ((*output_dtypes_)[item.first] == BM_UINT8) {
       type_size = sizeof(uint8_t);
+    } else if ((*output_dtypes_)[item.first] == BM_INT32){
+      type_size = sizeof(int32_t);
+    }else{
+        SPDLOG_ERROR("unhandled output {}'s dtype={}", item.first, (*output_dtypes_)[item.first]);
     }
+
+    // update shape
+    item.second->reset(output_shapes[item.first], (*output_dtypes_)[item.first]);
+
+    // update data
     int size = std::accumulate(output_shapes[item.first].begin(),
                output_shapes[item.first].end(), type_size, std::multiplies<int>());
     item.second->sync_d2s(size);
   }
 }
 
+void Graph::
+dump_io_tensors(const std::string& name, bm_tensor_t *ins, int in_num, bm_tensor_t *outs, int out_num)
+{
+    char tmp_file[256];
+    sprintf(tmp_file, "%s_in.dat", name.c_str());
+    // input tensors
+    FILE *fp = fopen(tmp_file, "wb");
+    for(int i = 0; i < in_num; ++i) {
+        //auto shape = ins[i].shape;
+        //fwrite(&shape.num_dims, 1, sizeof(int), fp);
+        //fwrite(shape.dims, 1, sizeof(int) * shape.num_dims, fp);
+
+        //dtype
+        //fwrite(&ins[i].dtype, 1, sizeof(ins[i].dtype), fp);
+
+        //data
+        int size = bmrt_tensor_bytesize(&ins[i]);
+        int8_t *data = new int8_t[size];
+        bm_memcpy_d2s_partial(handle_, data, ins[i].device_mem, size);
+        fwrite(data, 1, size, fp);
+        delete [] data;
+    }
+    fclose(fp);
+
+    //output tensors
+    sprintf(tmp_file, "%s_out.dat", name.c_str());
+    // input tensors
+    fp = fopen(tmp_file, "wb");
+    for(int i = 0; i < out_num; ++i) {
+        //auto shape = outs[i].shape;
+        //fwrite(&shape.num_dims, 1, sizeof(int), fp);
+        //fwrite(shape.dims, 1, sizeof(int) * shape.num_dims, fp);
+
+        //dtype
+        //fwrite(&outs[i].dtype, 1, sizeof(outs[i].dtype), fp);
+
+        //data
+        int size = bmrt_tensor_bytesize(&outs[i]);
+        int8_t *data = new int8_t[size];
+        bm_memcpy_d2s_partial(handle_, data, outs[i].device_mem, size);
+        fwrite(data, 1, size, fp);
+        delete [] data;
+    }
+    fclose(fp);
+}
+
 // inference with builtin tensors
 void Graph::inference() {
+    int ret = 0;
   // copy input data from system memory to device memory
   map_input_shapes(*input_shapes_, inputs_);
   if (io_mode_ == SYSI || io_mode_ == SYSIO) {
-    input_s2d(input_tensors_, inputs_, *input_shapes_);
+     input_s2d(input_tensors_, inputs_, *input_shapes_);
+  }else{
+      SPDLOG_INFO("io_mode is {}, no input_s2d!", io_mode_str(io_mode_));
   }
-  // calculate on tpu
-  bmrt_launch_tensor_ex(p_bmrt_,
+
+  // memset output tensors
+  for(int i = 0;i < output_tensors_.size(); ++i) {
+      bm_memset_device(handle_, 0, outputs_[i].device_mem);
+  }
+
+  bool ok = bmrt_launch_tensor_ex(p_bmrt_,
                         name_.c_str(),
                         inputs_,
                         input_tensors_.size(),
@@ -248,43 +341,74 @@ void Graph::inference() {
                         output_tensors_.size(),
                         true,
                         true);
+  if (!ok) {
+      SPDLOG_ERROR("bmrt_launch_tensor_ex() err");
+  }
   // call this func to make sure calculation is done
   bm_thread_sync(handle_);
+
+  const char *dump_flag = getenv("SAIL_SAVE_IO_TENSORS");
+  if (dump_flag != nullptr && 0 == strcmp(dump_flag, "1")){
+        dump_io_tensors(name_, inputs_, input_tensors_.size(), outputs_, output_tensors_.size());
+  }
+
   // copy output data from device memory to system memory
   if (io_mode_ == SYSO || io_mode_ == SYSIO) {
-    output_d2s(output_tensors_, outputs_, *output_shapes_);
+       output_d2s(output_tensors_, outputs_, *output_shapes_);
+  }else{
+      SPDLOG_INFO("io_mode is {}, no output_d2s!", io_mode_str(io_mode_));
   }
 }
+
 
 // inference with provided tensors
 std::map<std::string, std::vector<int>> Graph::inference(
     std::map<std::string, Tensor*>&          input,
     std::map<std::string, std::vector<int>>& input_shapes,
     std::map<std::string, Tensor*>&          output) {
-  bm_tensor_t bm_in[input.size()];
-  bm_tensor_t bm_out[output.size()];
+    TRACE_POINT;
+  std::unique_ptr<bm_tensor_t[]> bm_in_ptr(new bm_tensor_t[input.size()]);
+  std::unique_ptr<bm_tensor_t[]> bm_out_ptr(new bm_tensor_t[output.size()]);
+  bm_tensor_t *bm_in = bm_in_ptr.get();
+  bm_tensor_t *bm_out = bm_out_ptr.get();
   map_tensors(input, output, bm_in, bm_out);
-  map_input_shapes(input_shapes, bm_in);
+
   // copy input data from system memory to device memory
   if (io_mode_ == SYSI || io_mode_ == SYSIO) {
     input_s2d(input, bm_in, input_shapes);
+  }else{
+      SPDLOG_INFO("io_mode is {}, no input_s2d!", io_mode_str(io_mode_));
   }
+
+
+  TRACE_POINT;
   // calculate on tpu
-  bmrt_launch_tensor_ex(p_bmrt_,
+  if (!bmrt_launch_tensor_ex(p_bmrt_,
                         name_.c_str(),
                         bm_in,
                         input.size(),
                         bm_out,
                         output.size(),
                         true,
-                        true);
+                        true)) {
+      SPDLOG_ERROR("bmrt_launch_tensor_ex() failed");
+  }
   // call this func to make sure calculation is done
   bm_thread_sync(handle_);
+  TRACE_POINT;
+  const char *dump_flag = getenv("SAIL_SAVE_IO_TENSORS");
+  if (dump_flag != nullptr && 0 == strcmp(dump_flag, "1")){
+      dump_io_tensors(name_, bm_in, input.size(), bm_out, output.size());
+  }
+  TRACE_POINT;
   std::map<std::string, std::vector<int>> output_shapes;
   // copy output data from device memory to system memory
   if (io_mode_ == SYSO || io_mode_ == SYSIO) {
     output_d2s(output, bm_out, output_shapes);
+  }else{
+      SPDLOG_INFO("io_mode is {}, no output_d2s!", io_mode_str(io_mode_));
   }
+  TRACE_POINT;
   return output_shapes;
 }
 
@@ -292,6 +416,7 @@ std::map<std::string, std::vector<int>> Graph::inference(
 std::map<std::string, std::vector<int>> Graph::inference(
     std::map<std::string, Tensor*>& input,
     std::map<std::string, Tensor*>& output) {
+    TRACE_POINT;
   std::map<std::string, std::vector<int>> input_shapes;
   for (auto& item : input) {
     input_shapes[item.first] = item.second->shape();

@@ -3,7 +3,7 @@
 
 
 我们提供了4种基于自研 AI 芯片的 TPU 产品。
-如果希望了解详细内容，可参考网站： https://sophon.ai
+如果希望了解详细内容，可参考网站： https://www.sophgo.com
 
 .. toctree::
    :glob:

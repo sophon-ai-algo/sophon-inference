@@ -17,6 +17,7 @@ se5_tests
 ## Notes
 
 ```shell
+# this sample run in soc
 # the only thing you should do.
 # the script will download needed models and data in directory: ./data
 # add then test all the cases, it will exit when bug occurs.

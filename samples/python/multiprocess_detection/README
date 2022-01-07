@@ -1,0 +1,50 @@
+1、多进程获取视频流 写入queue
+2、多进程消费queue调用retinaface检测人脸
+3、将人脸检测结果保存到本地。
+4、每一路视频有一个解码线程，每4路视频创建一个进程，每个进程中包含一个检测线程
+
+首次运行：
+## 安装依赖
+1. 安装redis-server依赖：
+
+   ```bash
+   sudo apt install redis-server
+   ```
+
+2、安装python依赖 
+   ```bash
+     sudo pip3 install -r requirements.txt
+   ```
+
+3、进入detection文件夹，执行Make
+
+
+配置文件：
+1. utils/__init__.py
+2、
+     检测模型文件           : DETECTION_MODEL_PATH
+     检测模型使用的TPU      : DETECTION_TPU_ID
+     测试视频文件或者rtsp列表：VIDEO_LIST
+     浏览器访问的端口号      ：WEBSOCKET_PORT
+
+运行说明：
+python3 server.py
+
+## 查看画面
+
+打开浏览器查看： http://<box_ip>:WEBSOCKET_PORT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

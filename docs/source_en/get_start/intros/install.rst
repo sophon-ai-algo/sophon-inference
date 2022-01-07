@@ -72,7 +72,7 @@ Install Offline Tools
 Install Runtime Tools
 ^^^^^^^^^^^^^^^^^^^^^
 
-    The runtime libraries to be installed are BMDriver and Sophon Inference by now.
+    under PCIE mode, The runtime libraries to be installed are BMDriver and Sophon Inference by now, pls ignore the below two steps under SOC mode.
     The installation of BMDriver needs root's priority.
     BMDriver will be compiler based on your kernel source and installed on system kernel after follow commands.
 
@@ -85,7 +85,7 @@ Install Runtime Tools
 
         .. code-block:: shell
 
-           cd ${BMNNSDK}/examples/sail/x86/
+           cd ${BMNNSDK}/lib/sail/python3/pcie/py35
            pip3 install sophon-x.x.x-py3-none-any.whl --user
 
 

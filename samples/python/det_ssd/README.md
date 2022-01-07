@@ -12,7 +12,7 @@ det_ssd_2.py|video|ffmpeg|4|bmcv|fp32/int8|ssd_vgg
 
 ```shell
 # download bmodel to current directory.
-# download.py is in directory of source repo: tools/
+# download.py is in directory examples/sail/sc5_tests
 python3 ./download.py ssd_fp32.bmodel
 python3 ./download.py ssd_int8.bmodel
 # you can also download the raw model

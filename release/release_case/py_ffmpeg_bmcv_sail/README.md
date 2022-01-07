@@ -6,11 +6,11 @@
 
 ```shell
 # set LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${bmnnsdk2_path}/lib/ffmpeg/x86: \
-       ${bmnnsdk2_path}/lib/decode/x86
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/workspace/lib/ffmpeg/x86: \
+       /workspace/lib/decode/x86
 
 # install sophon python whl
-cd ${bmnnsdk2_path}/examples/sail/python3/x86
+cd /workspace/lib/sail/python3/pcie/py35
 pip3 install sophon-x.x.x-py3-none-any.whl --user
 ```
 
@@ -18,7 +18,7 @@ pip3 install sophon-x.x.x-py3-none-any.whl --user
 
 ```shell
 # set PYTHONPATH
-export $PYTHONPATH=${bmnnsdk2_path}/examples/sail/python3/soc/sophon:$PYTHONPATH
+export PYTHONPATH=/workspace/lib/sail/python3/soc/py35/sophon:$PYTHONPATH
 ```
 
 * A SSD example using bm-ffmpeg to decode and using bmcv to preprocess, with batch size is 1.
@@ -27,10 +27,13 @@ export $PYTHONPATH=${bmnnsdk2_path}/examples/sail/python3/soc/sophon:$PYTHONPATH
 # bmodel: bmodel path, can be fp32 or int8 model
 # input:  input path, can be image/video file or rtsp stream
 # loops:  frames count to be detected, default: 1
+# compare: conpare file path  (default is false)     
+
 python3 ./det_ssd_bmcv.py \
     --bmodel your-path-to-bmodel \
     --input your-path-to-input \
     --loops frames_count_to_detect
+    --compare your-compare-file-path 
 ```
 
 * A SSD example with batch size is 4 for acceleration of int8 model, using bm-ffmpeg to decode and using bmcv to preprocess.
@@ -39,8 +42,9 @@ python3 ./det_ssd_bmcv.py \
 # bmodel: bmodel path of int8 model
 # input:  input path, video file or rtsp stream
 # loops:  loop number of inference, each loop processes 4 frames. default: 1
+# compare: conpare file path  (default is false)     
 python3 ./det_ssd_bmcv_4b.py \
     --bmodel your-path-to-bmodel \
     --input your-path-to-input \
-    --loops frames_count_to_detect
-```
+    --loops frames_count_to_detect \
+    --compare your-compare-file-path 

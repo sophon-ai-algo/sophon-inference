@@ -8,16 +8,16 @@ Case 0: 使用 opencv 做解码和数据预处理
     其中，PreProcessor 中封装了 opencv 的 API。
     
         .. code-block:: cpp
-
            // ...
+           // sail Engine ele
            sail::Engine engine(bmodel_path, tpu_id, sail::SYSIO);
-           
-           // ...
-           
+          
+           // ... 
+           // preforward 
            PreProcessor preprocessor(416, 416);
            
            // ...
-           
+           // postforward
            PostProcessor postprocessor(0.5);
            
            // ...
@@ -28,19 +28,19 @@ Case 0: 使用 opencv 做解码和数据预处理
         .. code-block:: cpp
 
            // ...
-
+           // using opencv cap get video frame
            while (cap.read(frame)) {
            
              // ...
-             
+             // preforward
              preprocessor.processv2(input, frame);
              
              // ...
-             
+             // forward
              engine.process(graph_name);
              
              // ...
-             
+             // postforward include NMS            
              auto result = postprocessor.process(output, output_shape[2], height, width);
 
 
@@ -54,29 +54,29 @@ Case 1: 使用 bm-ffmpeg 解码，使用 bmcv 做预处理
         .. code-block:: cpp
     
            // ...
-    
            PreProcessorBmcv preprocessor(bmcv, input_scale, 416, 416);
            PostProcessor postprocessor(0.5);
 
            // ...
-
+           // bm-ffmpeg ele
            FFMpegFrameProvider frame_provider(bmcv, input_path, tpu_id);
+           // sail bmcv ele
            sail::BMImage img0, img1;
 
            // ...
-
+           // using bmcv-ele get frame 
            while (!frame_provider.get(img0)) {
 
              // ...
-
+             // preforward
              preprocessor.process(img0, img1);
              
              // ...
-    
+             // forward
              engine.process(graph_name);
 
              // ...
-
+             // postforward include NMS
              auto result = postprocessor.process(output, output_shape[2], height, width);
 
 

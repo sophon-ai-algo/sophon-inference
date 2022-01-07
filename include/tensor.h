@@ -59,7 +59,7 @@ typedef enum sail_status_t {
  */
 int get_available_tpu_num();
 
-class Handle {
+class DECL_EXPORT Handle {
  public:
   /**
    * @brief Default constructor.
@@ -152,7 +152,7 @@ enum IOMode {
  * or stores in both system memory and device memory. This class handles all
  * the conditions.
  */
-class Tensor {
+class DECL_EXPORT Tensor {
  public:
   /**
    * @brief Common constructor.\n
@@ -224,6 +224,15 @@ class Tensor {
   void scale_from(float* src, float scale, int size);
 
   /**
+   * @brief Scale int32 type data to tensor in system memory.
+   *
+   * @param src   Data of type int32 to be scaled from
+   * @param scale Scale value
+   * @param size  Size of data
+   */
+  void scale_from_int32(int32_t* src, float scale, int size);
+
+  /**
    * @brief Scale tensor to data in system memory.
    *
    * @param dst   Data of type float32 to scaled to
@@ -251,8 +260,9 @@ class Tensor {
   explicit Tensor(
       Handle                handle,
       pybind11::array_t<T>& data)
-      : handle_(handle), dtype_(BM_FLOAT32), own_sys_data_(false),
+      : handle_(handle), dtype_(BM_FLOAT32), own_sys_data_(true),
         own_dev_data_(true), sys_data_(nullptr), dev_data_({}) {
+
     pybind11::buffer_info buf = data.request();
     if (buf.ndim < 1) {
       spdlog::error("Invalid tensor shape!");
@@ -264,6 +274,8 @@ class Tensor {
       dtype_ = BM_INT8;
     } else if (std::is_same<T, uint8_t>::value) {
       dtype_ = BM_UINT8;
+    } else if (std::is_same<T, int32_t>::value) {
+      dtype_ = BM_INT32;
     }
     shape_.clear();
     for (auto it : buf.shape) {
@@ -272,14 +284,25 @@ class Tensor {
     // alloc dev_mem
     int data_size = std::accumulate(shape_.begin(), shape_.end(),
                     sizeof(T), std::multiplies<int>());
-    bm_malloc_device_byte(handle_.data(), &dev_data_, data_size);
-#ifdef USE_PCIE
-//    sys_data_ = buf.ptr;
-    memcpy(sys_data_, buf.ptr, data_size);
+    if (own_sys_data_) {
+#ifndef IS_SOC_MODE
+        sys_data_ = new uint8_t[data_size];
 #else
-    bm_mem_mmap_device_mem(handle_.data(), &dev_data_, (unsigned long long*)&sys_data_);
-    memcpy(sys_data_, buf.ptr, data_size);
+        bm_mem_mmap_device_mem(handle_.data(), &dev_data_, (unsigned long long*)&sys_data_);
+        own_sys_data_is_mmap_ = true;
 #endif
+
+    }
+
+    if (own_dev_data_) {
+        int ret = bm_malloc_device_byte_heap_mask(handle_.data(), &dev_data_, 7, data_size);
+        if (BM_SUCCESS != ret) {
+            SPDLOG_ERROR("bm_malloc_device_byte_heap_mask() err={}", ret);
+            exit(SAIL_ERR_BMCV_INIT);
+        }
+    }
+
+    memcpy(sys_data_, buf.ptr, data_size);
   }
 
   /**
@@ -297,6 +320,11 @@ class Tensor {
   pybind11::object asnumpy(const std::vector<int>& shape);
 
   /**
+   *
+   */
+  pybind11::array_t<long> pysys_data();
+
+  /**
    * @brief Scale data to tensor in system memory.
    *
    * @param data  Data of type float32 to be scaled from.
@@ -304,6 +332,7 @@ class Tensor {
    */
   void scale_from(pybind11::array_t<float>& data, float scale);
 
+  void scale_from(pybind11::array_t<int32_t>& data, float scale);
   /**
    * @brief Scale tensor to data in system memory.
    *
@@ -320,6 +349,11 @@ class Tensor {
    * @return Ndarray data of type float32 to scale to.
    */
   pybind11::array_t<float> scale_to(float scale, const std::vector<int>& shape);
+
+  /*pybind11::array_t<int32_t> scale_to(float scale);
+  pybind11::array_t<int32_t> scale_to(
+    float                   scale,
+    const std::vector<int>& shape);*/
 
   /**
    * @brief Update system data of the tensor. The data size should not exceed
@@ -345,7 +379,13 @@ class Tensor {
       type_size = sizeof(int8_t);
     } else if (dtype_ == BM_UINT8) {
       type_size = sizeof(uint8_t);
+    } else if (dtype_ == BM_INT32) {
+      type_size = sizeof(int32_t);
+    }else{
+        spdlog::error("not suport dtype={}!", dtype_);
+        exit(SAIL_ERR_TENSOR_INNER);
     }
+
     int old_size = std::accumulate(shape_.begin(), shape_.end(),
   		 type_size, std::multiplies<int>());
     int new_size = std::accumulate(shape.begin(), shape.end(),
@@ -354,7 +394,7 @@ class Tensor {
       spdlog::error("Data size exceeds tensor size!");
       exit(SAIL_ERR_TENSOR_INNER);
     }
-#ifdef USE_PCIE
+#ifndef IS_SOC_MODE
 //    if (own_sys_data_) {
 //      std::free(sys_data_);
 //      own_sys_data_ = false;
@@ -511,16 +551,19 @@ class Tensor {
   std::vector<int> shape_;
 
   /// Indicator of whether own the data pointer in system memory.
-  bool own_sys_data_;
+  bool own_sys_data_{false};
+  bool own_sys_data_is_mmap_{false};
 
   /// Indicator of whether own the device memory struct.
-  bool own_dev_data_;
+  bool own_dev_data_{false};
 
   /// Data pointer in system memory of the tensor.
-  void* sys_data_;
+  void* sys_data_{nullptr};
 
   /// Instance of device memory structure.
-  bm_device_mem_t dev_data_;
+  bm_device_mem_t dev_data_ {};
+  /// data size
+  uint32_t data_size_ {0};
 };
 
 }  // namespace sail

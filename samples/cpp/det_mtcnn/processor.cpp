@@ -1,4 +1,4 @@
-/* Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+/* Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ PreProcessor::PreProcessor(
     float mean_1,
     float mean_2,
     float scale_factor)
-    : scale_factor_(scale_factor), face_factor_(0.89), min_size_(40) {
+    : scale_factor_(scale_factor), face_factor_(0.7), min_size_(40) {
   float negative_mean[] = {-mean_0, -mean_1, -mean_2};
   negative_mean_.assign(negative_mean, negative_mean + 3);
 }
@@ -47,7 +47,7 @@ std::vector<double> PreProcessor::generate_scales(int height, int width) {
   min_hw *= m_scale;
   std::vector<double> scales;
   int factor_count = 0;
-  while (min_hw >= 12) {
+  while (min_hw >= 50) {
     scales.push_back(m_scale * std::pow(face_factor_, factor_count));
     min_hw *= face_factor_;
     ++factor_count;
@@ -362,7 +362,8 @@ std::vector<FaceRect> PostProcessor::get_reference(
       spdlog::error("Can't load reference file: {}!", compare_path);
       std::terminate();
     }
-    for (int i = 0 ; i < 42; ++i) {
+    int record_num =  reader.Sections().size();
+    for (int i = 0 ; i < record_num; ++i) {
       FaceRect box;
       std::string section("face_");
       section += std::to_string(i);
@@ -381,6 +382,7 @@ bool PostProcessor::compare(
     std::vector<FaceRect>& reference,
     std::vector<FaceInfo>& result) {
   if (reference.empty()) {
+    spdlog::info("No verify_files file or verify_files err.");
     return true;
   }
   if (reference.size() != result.size()) {
@@ -392,6 +394,14 @@ bool PostProcessor::compare(
   for (int i = 0; i < result.size(); ++i) {
     auto& box = result[i].bbox;
     auto& ref = reference[i];
+    /*
+    spdlog::info("[face_{}]", i);
+    spdlog::info("x1 = {} ;", box.x1);
+    spdlog::info("y1 = {} ;", box.y1);
+    spdlog::info("x2 = {} ;", box.x2);
+    spdlog::info("y2 = {} ;", box.y2);
+    spdlog::info("score = {} ;", box.score);
+    spdlog::info("\n"); */
     if (!(box == ref)) {
       spdlog::error("Compare failed! Expect: Box: [{}, {}, {}, {}], Score: {}",
                     ref.x1, ref.y1, ref.x2, ref.y2, ref.score);

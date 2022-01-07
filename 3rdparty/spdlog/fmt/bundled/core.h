@@ -706,6 +706,10 @@ FMT_MAKE_VALUE(string_type, const std::basic_string<typename C::char_type>&,
                basic_string_view<typename C::char_type>)
 FMT_MAKE_VALUE(pointer_type, void*, const void*)
 FMT_MAKE_VALUE_SAME(pointer_type, const void*)
+FMT_MAKE_VALUE(pointer_type, float*, const float*)
+FMT_MAKE_VALUE_SAME(pointer_type, const float*)
+FMT_MAKE_VALUE(pointer_type, int*, const int*)
+FMT_MAKE_VALUE_SAME(pointer_type, const int*)
 
 #if FMT_USE_NULLPTR
 FMT_MAKE_VALUE(pointer_type, std::nullptr_t, const void*)

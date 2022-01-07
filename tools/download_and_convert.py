@@ -13,7 +13,7 @@ from sophon.utils.download_and_convert import download_and_convert
 def main():
   """Program entry point.
   """
-  base_url = 'https://sophon-file.bitmain.com.cn/sophon-prod/model/19/06/27/'
+  base_url = 'https://sophon-file.sophon.cn/sophon-prod-s3/model/19/06/27/'
   # base_url = 'http://10.30.34.184:8080/sophon_model/'
   save_dir = FLAGS.save_path
   model_dir = os.path.join(save_dir, 'models')

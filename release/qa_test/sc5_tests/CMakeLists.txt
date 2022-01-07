@@ -1,3 +1,11 @@
+file(STRINGS /etc/os-release distro REGEX "^NAME=")
+string(REGEX REPLACE "NAME=\"(.*)\"" "\\1" distro "${distro}")
+
+if(${distro} MATCHES "CentOS Linux")
+  message("System is ${distro}")
+  set(CMAKE_CXX_COMPILER   x86_64-pc-linux-gnu-c++)
+endif()
+
 project(sc5_tests)
 cmake_minimum_required(VERSION 3.0)
 
@@ -20,11 +28,13 @@ set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS} -g -w")
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH    ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_MODULE_PATH      ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_CXX_FLAGS       "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
 
 # include
-add_definitions(-DUSE_PCIE)
-add_definitions(-DUSE_FFMPEG)
-add_definitions(-DUSE_BMCV)
+add_definitions(-DUSE_OPENCV=1)
+add_definitions(-DUSE_FFMPEG=1)
+add_definitions(-DUSE_BMCV=1)
+
 if(BUILD_ON_ARM)
   set(CMAKE_MODULE_PATH      ${CMAKE_SOURCE_DIR}/cmake/arm)
 else()

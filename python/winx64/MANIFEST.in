@@ -1,0 +1,6 @@
+include sophon/*.pyd
+include sophon/*.dll
+include sophon/utils/*.json
+include sophon/algokit/engine/autodeployconfig/*.json
+include sophon/algokit/engine/engineconfig/*.json
+

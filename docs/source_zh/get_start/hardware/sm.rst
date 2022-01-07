@@ -1,4 +1,5 @@
 算丰模组(SM)系列
 ________________
-
-敬请期待。
+.. image:: ../../../images/sm5.jpg
+   :scale: 50%
+   :align: center

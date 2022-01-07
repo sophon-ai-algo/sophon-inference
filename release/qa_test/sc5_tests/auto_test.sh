@@ -19,7 +19,7 @@
 # python3 -V
 # # choose the same verion of sophon wheel to install
 # # the following py3x maybe py35, py36, py37 or py38
-# pip3 install ../lib/sail/python3/pcie/py3x/sophon-2.0.3-py3-none-any.whl --user
+# pip3 install ../lib/sail/python3/pcie/py3x/sophon-?.?.?-py3-none-any.whl --user
 #
 # # for arm
 # source envsetup_arm_pcie.sh
@@ -30,7 +30,7 @@
 # python3 -V
 # # choose the same verion of sophon wheel to install
 # # the following py3x maybe py35, py36, py37 or py38
-# pip3 install ../lib/sail/python3/arm_pcie/py3x/sophon-2.0.3-py3-none-any.whl --user
+# pip3 install ../lib/sail/python3/arm_pcie/py3x/sophon-?.?.?-py3-none-any.whl --user
 
 function judge_ret() {
   if [[ $1 == 0 ]]; then
@@ -44,12 +44,18 @@ function judge_ret() {
 }
 
 function get_tpu_num() {
-  local tpu_num=$(python3 -c "from sophon import sail; print(sail.get_available_tpu_num())")
+  local tpu_num=0
+  for id in {0..128}
+  do
+     if [ -c "/dev/bm-sophon$id" ];then
+        tpu_num=$(($tpu_num+1))
+     fi
+  done
   echo $tpu_num
 }
 
 function get_tpu_ids() {
-  local tpu_num=$(python3 -c "from sophon import sail; print(sail.get_available_tpu_num())")
+  local tpu_num=$(get_tpu_num)
   declare -a tpus
   for i in $( seq 0 $(($tpu_num-1)) )
   do

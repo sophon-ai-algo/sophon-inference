@@ -15,8 +15,7 @@ ______________________________________
        # why transpose?
        # bmodel will always be NCHW layout,
        # so, if original tensorflow frozen model is formatted as NHWC,
-       # we should transpose original (1, 224, 224, 3) to (1, 3, 224, 224)
-       input_data = {input_tensor_name: np.transpose(np.expand_dims(cv2.resize(cv2.imread("cls.jpg"), (224,224)), 0), [0,3,1,2]).copy()}
+       input_data = {input_tensor_name: np.expand_dims(cv2.resize(cv2.imread("cls.jpg"), (224,224)), 0)}
        outputs = bmodel.process(graph_name, input_data)                         # do inference
 
 

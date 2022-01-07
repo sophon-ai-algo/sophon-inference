@@ -58,7 +58,7 @@ function install_bmsdk() {
   fi
 
   pushd "${BMSDK_PATH}"
-  pip3 install bmnetc/bmnetc-2.1.0-py2.py3-none-any.whl --user
+  pip3 install bmnetc/bmnetc-?.?.?-py2.py3-none-any.whl --user
   popd
 
   python3 -c "import bmnett"
@@ -68,7 +68,7 @@ function install_bmsdk() {
     echo ""
   fi
   pushd "${BMSDK_PATH}"
-  pip3 install bmnett/bmnett-2.1.0-py2.py3-none-any.whl --user
+  pip3 install bmnett/bmnett-?.?.?-py2.py3-none-any.whl --user
   popd
 
   python3 -c "import bmnetm"
@@ -78,7 +78,7 @@ function install_bmsdk() {
     echo ""
   fi
   pushd "${BMSDK_PATH}"
-  pip3 install bmnetm/bmnetm-2.1.0-py2.py3-none-any.whl --user
+  pip3 install bmnetm/bmnetm-?.?.?-py2.py3-none-any.whl --user
   popd
 
   python3 -c "import bmnetp"
@@ -88,7 +88,7 @@ function install_bmsdk() {
     echo ""
   fi
   pushd "${BMSDK_PATH}"
-  pip3 install bmnetp/bmnetp-2.1.0-py2.py3-none-any.whl --user
+  pip3 install bmnetp/bmnetp-?.?.?-py2.py3-none-any.whl --user
   popd
 }
 

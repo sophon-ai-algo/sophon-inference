@@ -1,9 +1,10 @@
 #! /usr/bin
 #navigate to script path
+GIT_SERVER=172.28.141.75
 DIRNAME=$(cd $(dirname $0);pwd)
 cd $DIRNAME
 
-NAME=$(curl ftp://AI:dailybuild@10.30.40.51/all_in_one/release_build/ | sort | tail -n 1 | awk '{print $9}')
+NAME=$(curl ftp://AI:dailybuild@${GIT_SERVER}/all_in_one/release_build/ | sort | tail -n 1 | awk '{print $9}')
 echo "the latest bmsdk release time is " ${NAME}
 touch last_version
 
@@ -11,8 +12,8 @@ last_time=`cat last_version`
 if [[ "${last_time}" != ${NAME} ]];then
    rm ~/bm-driver/*.tar.gz
    echo "download the latest bmsdk version"
-   TAR_FILE=$(curl ftp://AI:dailybuild@10.30.40.51/all_in_one/release_build/${NAME}/bmnnsdk2/ |grep tar |awk '{print $NF}')
-   wget ftp://AI:dailybuild@10.30.40.51/all_in_one/release_build/${NAME}/bmnnsdk2/${TAR_FILE}
+   TAR_FILE=$(curl ftp://AI:dailybuild@${GIT_SERVER}/all_in_one/release_build/${NAME}/bmnnsdk2/ |grep tar |awk '{print $NF}')
+   wget ftp://AI:dailybuild@${GIT_SERVER}/all_in_one/release_build/${NAME}/bmnnsdk2/${TAR_FILE}
    tar -zvxf ${TAR_FILE}
    TAR_DIR_NAME="${TAR_FILE/.tar.gz}"
    if [[ -d release ]]; then

@@ -49,31 +49,6 @@ Run C++ cases
            ./det_ssd_2 --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1
 
 
-
-    For case 3:
-
-        .. code-block:: shell
-
-           # run fp32 bmodel with input of image
-           ./det_ssd_3 --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1
-
-           # run int8 bmodel with input of video
-           ./det_ssd_3 --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1
-
-
-    For case 4:
-
-        .. code-block:: shell
-
-           # run fp32 bmodel with input of image
-           ./det_ssd_4 --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1
-
-           # run int8 bmodel with input of video
-           ./det_ssd_4 --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1
-
-
-
-
 Run python cases
 ^^^^^^^^^^^^^^^^
 
@@ -82,10 +57,10 @@ Run python cases
         .. code-block:: shell
 
            # run fp32 bmodel with input of image
-           python3 ./det_ssd_0.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1 --tpu_id 0 --compare verify_det_jpg_fp32_0.json
+           python3 ./det_ssd_0.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1 --tpu_id 0 --compare ./verify_files/verify_ssd_0_fp32_image.json
 
            # run int8 bmodel with input of video
-           python3 ./det_ssd_0.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare verify_det_h264_int8_0.json
+           python3 ./det_ssd_0.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare ./verify_files/verify_ssd_0_int8_video.json
 
 
     For case 1:
@@ -93,18 +68,16 @@ Run python cases
         .. code-block:: shell
 
            # run fp32 bmodel with input of image
-           python3 ./det_ssd_1.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1 --tpu_id 0 --compare verify_det_jpg_fp32_1.json
+           python3 ./det_ssd_1.py --bmodel ./ssd_fp32.bmodel --input ./det.jpg --loops 1 --tpu_id 0 --compare ./verify_files/verify_ssd_1_fp32_image.json
 
            # run int8 bmodel with input of video
-           python3 ./det_ssd_1.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare verify_det_h264_int8_0.json
-
+           python3 ./det_ssd_1.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare ./verify_files/verify_ssd_1_int8_video.json
 
     For case 2:
 
         .. code-block:: shell
 
            # run int8 bmodel with input of video
-           python3 ./det_ssd_2.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare verify_det_h264_int8_2.json
-
+           python3 ./det_ssd_2.py --bmodel ./ssd_int8.bmodel --input ./det.h264 --loops 1 --tpu_id 0 --compare ./verify_files/verify_ssd_2_int8_video.json
 
 

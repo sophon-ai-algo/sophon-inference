@@ -1,4 +1,4 @@
-""" Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+""" Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ import os
 import argparse
 import threading
 import json
+import signal
 import numpy as np
 from sophon import sail
 from processor import preprocess
@@ -101,9 +102,14 @@ def thread_infer(thread_id, graph_name, engine, \
       return
   status[thread_id] = True
 
+def signal_handle():
+  print("INT*****")
+  sys.exit(0)
+
 def main():
   """ An example shows inference of multi-models in multi-threads on one TPU.
   """
+  signal.signal(signal.SIGINT, signal_handle)
   # init Engine
   engine = sail.Engine(ARGS.tpu_id)
   # create threads for loading bmodel, you can also load in main thread
@@ -126,9 +132,27 @@ def main():
     threads.append(threading.Thread(target=thread_infer,
                                     args=(i, graph_names[i], engine, \
                                           ARGS.input, ARGS.loops, \
-                                          ARGS.compare, status)))
+                                             ARGS.compare, status)))
   for i in range(thread_num):
+    threads[i].setDaemon(True)
     threads[i].start()
+  
+  while True:
+    alive=False
+    for t in threads:
+      alive = alive or t.isAlive()
+      if alive == True:
+        break
+    if not alive:
+      break
+  for stat in status:
+    if not stat:
+      sys.exit(-1)
+  sys.exit(0)
+
+  '''                                      
+  for i in range(thread_num):
+    threads[i].setDaemon(True)
   for i in range(thread_num):
     threads[i].join()
   # check status
@@ -136,6 +160,7 @@ def main():
     if not stat:
       sys.exit(-1)
   sys.exit(0)
+ '''
 
 if __name__ == '__main__':
   PARSER = argparse.ArgumentParser(description='cls_resnet')

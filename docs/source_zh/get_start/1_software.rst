@@ -2,7 +2,7 @@
 ================
 
 针对上一小节中提到的一系列算丰系列TPU产品，
-比特大陆自主研发了一套与之匹配的软件工具：
+算能科技自主研发了一套与之匹配的软件工具：
 Bitmain Neural Network Software Development Kit(BMNNSDK)。
 
 使用算丰TPU产品所需的软件栈完全包含在 BMNNSDK 中。

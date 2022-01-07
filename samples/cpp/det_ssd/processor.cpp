@@ -1,4 +1,4 @@
-/* Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+/* Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ You may obtain a copy of the License at
 
 #include <numeric>
 #include <fstream>
-#ifndef USE_PCIE
+#ifdef USE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif
 #include "inireader.hpp"
@@ -34,11 +34,20 @@ PreProcessor::PreProcessor(float scale) :
   }
 }
 
-#ifndef USE_FFMPEGBMCV
+#if defined(USE_OPENCV)
 #include <opencv2/opencv.hpp>
 void PreProcessor::process(cv::Mat& input, cv::Mat& output) {
   cv::Mat tmp;
+#ifdef USE_BMCV
+  if (input.avOK()) {
+      tmp.create(cv::Size(300, 300), CV_8UC3);
+      cv::bmcv::resize(input, tmp);
+  }else{
+      cv::resize(input, tmp, cv::Size(300, 300), 0, 0, cv::INTER_NEAREST);
+  }
+#else
   cv::resize(input, tmp, cv::Size(300, 300), 0, 0, cv::INTER_NEAREST);
+#endif
   tmp.convertTo(tmp, CV_32FC3);
   tmp += cv::Scalar(ab_[1], ab_[3], ab_[5]);
   tmp.convertTo(output, output.type(), ab_[0]);
@@ -61,7 +70,7 @@ void BmcvPreProcessor::process(sail::BMImage& input, sail::BMImage& output) {
                                    std::make_pair(ab_[4], ab_[5])));
 }
 
-#ifndef USE_PCIE
+#ifdef USE_OPENCV
 #include <opencv2/core.hpp>
 void BmcvPreProcessor::process(cv::Mat& input, sail::BMImage& output) {
   int w = input.cols;
@@ -160,7 +169,11 @@ bool PostProcessor::compare(
     std::vector<DetectRect>& reference,
     std::vector<DetectRect>& result,
     int                      loop_id) {
-  if (reference.empty() || loop_id > 0) {
+  if (reference.empty()) {
+    spdlog::info("No verify_files file or verify_files err.");
+    return true;
+  }
+  if (loop_id > 0) {
     return true;
   }
   if (reference.size() != result.size()) {
@@ -192,7 +205,11 @@ bool PostProcessor::compare_4b(
     std::vector<std::vector<DetectRect>>&   reference,
     std::array<std::vector<DetectRect>, 4>& result,
     int                                     loop_id) {
-  if (reference.empty() || loop_id > 0) {
+  if (reference.empty()) {
+    spdlog::info("No verify_files file or verify_files err.");
+    return true;
+  }
+  if (loop_id > 0) {
     return true;
   }
   if (reference.size() != result.size()) {

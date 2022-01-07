@@ -6,12 +6,22 @@ The bmodels used in this demo are already converted from official yolov3, to bot
 
 The differences between the two cases are the Decoder and Preprocessor.
 
+c++ version:
+
 +----+-------------+-----------+--------------+-----------+--------+--------+--------------+------------+-------------+
 | ID | Input       | Decoder   | Preprocessor | Data Type | Model  | Mode   | Model Number | Batch Size | Multi-Thread|
 +====+=============+===========+==============+===========+========+========+==============+============+=============+
 | 0  | multi-video | opencv    | opencv       | fp32 int8 | yolov3 | static | 1            | 1          | Y           |
 +----+-------------+-----------+--------------+-----------+--------+--------+--------------+------------+-------------+
 | 1  | multi-video | bm-ffmpeg | bmcv         | fp32 int8 | yolov3 | static | 1            | 1          | Y           |
++----+-------------+-----------+--------------+-----------+--------+--------+--------------+------------+-------------+
+
+python version:
+
++----+-------------+-----------+--------------+-----------+--------+--------+--------------+------------+-------------+
+| ID | Input       | Decoder   | Preprocessor | Data Type | Model  | Mode   | Model Number | Batch Size | Multi-Thread|
++====+=============+===========+==============+===========+========+========+==============+============+=============+
+| 0  | single-video| opencv    | opencv       | fp32 int8 | yolov3 | static | 1            | 1          | N           |
 +----+-------------+-----------+--------------+-----------+--------+--------+--------------+------------+-------------+
 
 

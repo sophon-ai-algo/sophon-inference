@@ -1,4 +1,4 @@
-/* Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+/* Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,18 +33,30 @@ PreProcessorBmcv::PreProcessorBmcv(
     float       scale,
     int         height,
     int         width)
-  : bmcv_(bmcv), ab_({0.003922, 0.0, 0.003922, 0.0, 0.003922, 0.0}),
+    : bmcv_(bmcv),
     height_(height), width_(width) {
+  
+    ab_[0] = 0.003922;
+    ab_[1] = 0.0;
+    ab_[2] = 0.003922;
+    ab_[3] = 0.0;
+    ab_[4] = 0.003922;
+    ab_[5] = 0.0;
+
   for (int i = 0; i < 6; i++) {
     ab_[i] *= scale;
   }
 }
 
 void PreProcessorBmcv::process(sail::BMImage& input, sail::BMImage& output) {
+  sail::Handle handle;
+  handle = bmcv_.get_handle();
+  sail::BMImage imgtemp(handle, height_, width_,FORMAT_RGB_PLANAR, input.dtype());
+
   // resize: bgr-packed -> bgr-planar
-  sail::BMImage tmp = bmcv_.vpp_resize(input, width_, height_);
+  bmcv_.vpp_resize(input, imgtemp, width_, height_);
   // linear: bgr-planar -> rgb-planar
-  bmcv_.convert_to(tmp,
+  bmcv_.convert_to(imgtemp,
                    output,
                    std::make_tuple(
                      std::make_pair(ab_[0], ab_[1]),

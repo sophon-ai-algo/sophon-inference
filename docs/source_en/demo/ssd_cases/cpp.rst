@@ -130,17 +130,6 @@ Case 2: decoding with bm-ffmpeg and preprocessing with bmcv, 4N-mode
 
 
 
-Case 3: decoding and preprocessing with bm-opencv
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    This case is suitale for SOC mode only.
-    The form of calling bm-opencv in SOC mode is almost the same as calling opencv(public released) in PCIE mode.
-
-Case 4: decoding with bm-opencv and preprocessing with bmcv
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    This case is suitale for SOC mode only.
-    The form of calling bm-opencv in SOC mode is almost the same as calling opencv(public released) in PCIE mode.
 
 
 

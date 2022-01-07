@@ -1,16 +1,13 @@
 SAIL
 ====
 
-SAIL 是 Sophon Inference 中的核心模块，
+SAIL (Sophon Artificial Intelligent Library)是 Sophon Inference 中的核心模块。
+SAIL对 BMNNSDK 中的 BMLib、BMDecoder、BMCV、BMRuntime 进行了封装，
+将 BMNNSDK 中原有的 “加载 bmodel 并驱动 TPU 推理”、“驱动 TPU 做图像处理”、“驱动 VPU 做图像和视频解码”等功能抽象成更为简单的 C++ 接口对外提供；
+并且使用 pybind11 再次封装，提供简洁易用的 python 接口。
 
-SAIL 对 BMNNSDK 中的 BMLib、BMDecoder、BMCV、BMRuntime 进行了封装，
-将 BMNNSDK 中原有的 “加载 bmodel 并驱动 TPU 推理”、
-“驱动 TPU 做图像处理”、“驱动 VPU 做图像和视频解码”
-等功能抽象成更为简单的 C++ 接口对外提供；
-并且支持使用 pybind11 再次封装，提供简洁的 python 接口。
-
-目前，SAIL 模块中所有的类、枚举、函数都在 “sail” 名字空间下，
-本单元中的文档将深入介绍您可能用到的 SAIL 中的模块和类。
+目前，SAIL 模块中所有的类、枚举、函数都在 “sail” 命名空间下，
+本单元中的文档将向您深入介绍可能用到的 SAIL 中的模块和类。
 核心的类包括：
 
 * Handle：
@@ -19,7 +16,7 @@ BMNNSDK 中 BMLib 的 bm_handle_t 的包装类，设备句柄，上下文信息�
 
 * Tensor：
 
-BMNNSDK 中 BMLib 的包装类，封装了对 device memroy 的管理以及与 system memory 的同步。
+BMNNSDK 中 BMLib 的包装类，封装了对 device memory 的管理以及与 system memory 的同步。
 
 * Engine：
 

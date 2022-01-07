@@ -43,7 +43,7 @@ namespace sail {
  * memory of input and output tensors for both static and dynamic models.
  * It can load more than one model and runs on more than one TPU.
  */
-class Engine {
+class DECL_EXPORT Engine {
  public:
   /**
    * @brief Constructor does not load bmodel.
@@ -419,7 +419,24 @@ class Engine {
    * @param size  Size of data
    */
   void scale_uint8_to_fp32(uint8_t* src, float* dst, float scale, int size);
-
+  
+  /**
+   * @brief Scale data from int32 to float32. Only used for int32 models.
+   *
+   * @param src   Poniter to int32 data
+   * @param dst   Poniter to float32 data
+   * @param scale Value of scale
+   * @param size  Size of data
+   */
+  void scale_int32_to_fp32(int32_t* src, float* dst, float scale, int size);
+  /**
+   * @brief Scale data from fp32 to int32. Only used for int32 models.
+   * @param src Pointer to fp32 data
+   * @param dst Point to int32 data
+   * @param scale Value of scale
+   * @param size Size of data
+   */
+  void scale_fp32_to_int32(float* src, int32_t* dst, float scale, int size);
   /**
    * @brief Inference with builtin input and output tensors.
    *
@@ -495,6 +512,7 @@ class Engine {
   std::map<std::string, pybind11::array_t<float>> process(
       const std::string&                               graph_name,
       std::map<std::string, pybind11::array_t<float>>& input_tensors);
+    
 #endif
 
  private:
@@ -519,16 +537,6 @@ class Engine {
   int is_input_shape_valid(
       const std::string&                             graph_name,
       const std::map<std::string, std::vector<int>>& input_shapes);
-
-  /**
-   * @brief Allocate system and device memroy for input and output tensors.
-   *
-   * @return Program state
-   *     @retval O      Success
-   *     @retval others Failure
-   */
-  int alloc_tensors();
-
   /**
    * @brief Update information of newly loaded models.
    *

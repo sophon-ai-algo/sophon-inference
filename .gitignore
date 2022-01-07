@@ -13,3 +13,5 @@ tests/data/
 out/
 .vscode/
 release/qa_test/sa5_tests/
+cmake-build-debug/
+

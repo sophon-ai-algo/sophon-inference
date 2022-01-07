@@ -203,6 +203,15 @@ class Graph {
       bm_tensor_t*                             bm_in,
       bm_tensor_t*                             bm_out);
 
+  void map_input_tensors(
+            std::map<std::string, Tensor*>&          input,
+            bm_tensor_t*                             bm_in);
+
+  void map_output_tensors(
+            std::map<std::string, Tensor*>&          output,
+            bm_tensor_t*                             bm_out);
+
+  void dump_io_tensors(const std::string& name, bm_tensor_t *ins, int in_num, bm_tensor_t *outs, int out_num);
   /**
    * @brief Map real input shapes to bm_tensors.
    *

@@ -11,14 +11,15 @@ Case 0: decoding and preprocessing with opencv
         .. code-block:: cpp
 
            // ...
+           // sail Engine ele
            sail::Engine engine(bmodel_path, tpu_id, sail::SYSIO);
            
            // ...
-           
+           // preforward
            PreProcessor preprocessor(416, 416);
            
            // ...
-           
+           // postforward
            PostProcessor postprocessor(0.5);
            
            // ...
@@ -30,19 +31,19 @@ Case 0: decoding and preprocessing with opencv
         .. code-block:: cpp
 
            // ...
-
+           // using opencv cap get video frame
            while (cap.read(frame)) {
            
              // ...
-             
+             // preforward
              preprocessor.processv2(input, frame);
              
              // ...
-             
+             // forward
              engine.process(graph_name);
              
              // ...
-             
+             // postforward include NMS
              auto result = postprocessor.process(output, output_shape[2], height, width);
 
 
@@ -57,29 +58,29 @@ Case 1: decoding with bm-ffmpeg and preprocessing with bmcv
         .. code-block:: cpp
     
            // ...
-    
            PreProcessorBmcv preprocessor(bmcv, input_scale, 416, 416);
            PostProcessor postprocessor(0.5);
 
            // ...
-
+           // bm-ffmpeg ele
            FFMpegFrameProvider frame_provider(bmcv, input_path, tpu_id);
+           // bmcv ele
            sail::BMImage img0, img1;
 
            // ...
-
+           // using bmcv-ele get frame
            while (!frame_provider.get(img0)) {
 
              // ...
-
+             // preforward
              preprocessor.process(img0, img1);
              
              // ...
-    
+             // forward
              engine.process(graph_name);
 
              // ...
-
+             // postforward include NMS
              auto result = postprocessor.process(output, output_shape[2], height, width);
 
 

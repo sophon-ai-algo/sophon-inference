@@ -11,9 +11,9 @@ _________
 +--------------+-------------+-----------+--------------+-----------+--------------+---------+--------------+------------+------------+-------------+
 | cls-resnet-1 | image       | opencv    | opencv       | fp32 int8 | resnet-50    | static  | 1            | 1          | 1          | Y           |
 +--------------+-------------+-----------+--------------+-----------+--------------+---------+--------------+------------+------------+-------------+
-| cls-resnet-2 | image       | opencv    | opencv       | fp32 int8 | resnet-50    | static  | 1            | 2          | 1          | Y           |
+| cls-resnet-2 | image       | opencv    | opencv       | fp32 int8 | resnet-50    | static  | 2            | 1          | 1          | Y           |
 +--------------+-------------+-----------+--------------+-----------+--------------+---------+--------------+------------+------------+-------------+
-| cls-resnet-3 | image       | opencv    | opencv       | fp32 int8 | resnet-50    | static  | 2            | 1          | 1          | Y           |
+| cls-resnet-3 | image       | opencv    | opencv       | fp32 int8 | resnet-50    | static  | 1            | 2          | 1          | Y           |
 +--------------+-------------+-----------+--------------+-----------+--------------+---------+--------------+------------+------------+-------------+
 | det-ssd-0    | video image | opencv    | opencv       | fp32 int8 | ssd300-vgg16 | static  | 1            | 1          | 1          | N           |
 +--------------+-------------+-----------+--------------+-----------+--------------+---------+--------------+------------+------------+-------------+
@@ -84,3 +84,29 @@ ______
 |  2  | invalid tpu id   |
 +-----+------------------+
 
+测试验证
+_________
+我们提供了自动化的测试脚本，以通过编译运行examples/sail下的示例程序来验证SAIL模块的开发运行环境已被正确配置。
+
+    For PCIe in x86_docker:
+        
+        .. code-block:: shell
+                
+                cd  /workspace/examples/sail/sc5_tests
+                ./auto_test.sh
+
+    For SE5:
+        
+        .. code-block:: shell
+                
+                # 需要先将${BMNNSDK}/examples/sail/se5_tests目录拷贝至SE5盒子中的/data/examples/sail目录下
+                cd  /data/examples/sail/se5_tests
+                ./scripts/auto_test.sh
+
+本节后续测试均以PCIe模式下的SC5为例，应当在开发docker容器中执行。
+
+    切换工作目录：
+    
+        .. code-block:: shell
+
+           cd /workspace/examples/sail/sc5_tests

@@ -1,4 +1,4 @@
-""" Copyright 2016-2022 by Bitmain Technologies Inc. All rights reserved.
+""" Copyright 2016-2022 by Sophgo Technologies Inc. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,12 @@ def run_pnet(engine, preprocessor, postprocessor, image):
   """
   graph_name = 'PNet'
   input_name = engine.get_input_names(graph_name)[0];
+  map_maxinput_shape = engine.get_max_input_shapes(graph_name)
+  maxinput_shape = []
+  for max_shape in map_maxinput_shape:
+    if input_name == max_shape:
+      maxinput_shape = map_maxinput_shape[max_shape]
+      break
   boxes = np.zeros((0, 9), np.float32)
   height = image.shape[0]
   width = image.shape[1]
@@ -42,6 +48,8 @@ def run_pnet(engine, preprocessor, postprocessor, image):
   for scale in scales:
     scaled_h = int(np.ceil(height * scale))
     scaled_w = int(np.ceil(width * scale))
+    if scaled_h > maxinput_shape[2] or scaled_w > maxinput_shape[3]:
+      continue
     input_data = preprocessor.pnet_process(image, scaled_h, scaled_w)
     output_tensors = engine.process(graph_name, {input_name: input_data})
     candidates = postprocessor.pnet_process_per_scale(output_tensors, scale)
@@ -140,7 +148,7 @@ def run_onet(engine, preprocessor, postprocessor, boxes, image):
   print("Box number detected by ONet: {}".format(boxes_num));
   return boxes
 
-def print_result(boxes, tpu_id):
+def print_result(boxes, tpu_id, loop):
   """ Print bounding boxes of detected faces.
 
   Args:
@@ -153,7 +161,7 @@ def print_result(boxes, tpu_id):
   if boxes is None or len(boxes) == 0:
     print("No face was detected in this image!");
     return
-  print("---------  MTCNN DETECTION RESULT ON TPU {} ---------".format(tpu_id));
+  print("---------  MTCNN DETECTION RESULT ON TPU {} OF LOOP {}---------".format(tpu_id, loop));
   message = "Face {} Box: [{}, {}, {}, {}], Score: {:.6f}"
   for i in range(boxes.shape[0]):
     x = int(boxes[i, 1]) if boxes[i, 1] > 0 else 0
@@ -161,6 +169,19 @@ def print_result(boxes, tpu_id):
     width = int(boxes[i, 3] - boxes[i, 1])
     height = int(boxes[i, 2] - boxes[i, 0])
     print(message.format(i, x, y, width, height, boxes[i, 4]))
+
+def draw_result(boxes, tpu_id, loop, img):
+  if boxes is None or len(boxes) == 0:
+    print("No face was detected in this image!");
+    return
+  for i in range(boxes.shape[0]):
+    x1 = int(boxes[i, 1]) if boxes[i, 1] > 0 else 0
+    y1 = int(boxes[i, 0]) if boxes[i, 0] > 0 else 0
+    x2 = int(boxes[i, 3]) if boxes[i, 3] > 0 else 0
+    y2 = int(boxes[i, 2]) if boxes[i, 2] > 0 else 0
+    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
+    cv2.imwrite("mtcnn.jpg", cv2.transpose(img))
+
 
 def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
   """ Load a bmodel and do inference.
@@ -197,7 +218,8 @@ def inference(bmodel_path, input_path, loops, tpu_id, compare_path):
         boxes = run_onet(engine, preprocessor, postprocessor, boxes, image)
     # print detected result
     if postprocessor.compare(reference, boxes, i):
-      print_result(boxes, tpu_id)
+      print_result(boxes, tpu_id, i)
+      #draw_result(boxes, tpu_id, i, image)
     else:
       status = False
       break
@@ -220,6 +242,7 @@ if __name__ == '__main__':
   if not os.path.isfile(ARGS.input):
     print("Error: {} not exists!".format(ARGS.input))
     sys.exit(-2)
-  status = inference(ARGS.bmodel, ARGS.input, \
-                     ARGS.loops, ARGS.tpu_id, ARGS.compare)
+  for i in range(ARGS.loops):
+      status = inference(ARGS.bmodel, ARGS.input, \
+                     1, ARGS.tpu_id, ARGS.compare)
   sys.exit(0 if status else -1)
