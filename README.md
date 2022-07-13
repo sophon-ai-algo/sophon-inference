@@ -41,6 +41,14 @@ source ./envsetup_pcie.sh         # for x86_64
 1. change python configuration from compile.sh.
 2. ./compile.sh
 
+# build results
+|-- out
+|   `-- sophon-inference
+|       |-- include 
+|       |   `-- sail                         # sail header
+|       |-- lib                              # sail lib
+|       `-- python3x                         # sail wheel     
+
 ```
 
 ## Samples

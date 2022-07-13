@@ -4,11 +4,11 @@ rm -fr build
 mkdir build;
 
 # params: <pcie|arm_pcie|soc|mips|cmodel> <local|sophonsdk3|allinone>
-target_arch=soc
+target_arch=pcie
 sdk_type=sophonsdk3
 
-PYTHON_BIN=/workspace/pythons/Python-3.8.2/python_3.8.2/bin/python3
-PYTHON_LIB=/workspace/pythons/Python-3.8.2/python_3.8.2/lib/
+PYTHON_BIN=/usr/bin/python3
+PYTHON_LIB=/usr/lib/x86_64-linux-gnu/
 
 if [ -n "$1" ]; then
    target_arch=$1
