@@ -21,6 +21,10 @@ if os.path.exists(AARCH64_PATH):
     shutil.copy(AARCH64_PATH, DST_PATH)
   except shutil.SameFileError:
     pass
+
+  pyi_name = "sophon/sail.pyi"
+  shutil.copy("../../src/sail.pyi",pyi_name)
+
   # sophon_aarch64 python module
   PACKAGES_AARCH64 = ['sophon', 'sophon.auto_runner', 'sophon.auto_runner.common',
                       'sophon.auto_runner.runner', 'sophon.auto_runner.external',
@@ -35,12 +39,12 @@ if os.path.exists(AARCH64_PATH):
         version=git_version,
         description='Inference samples for deep learning on Sophon products.',
         author='Sophon algorithm team',
-        author_email='hong.liu@bitmain.com',
-        url='https://git.bitmain.vip/ai-algorithm/sophon-inference',
+        url='https://github.com/sophon-ai-algo/sophon-inference',
         long_description='''
   Guide to deploying deep-learning inference networks and deep vision primitives on Sophon TPU.
   ''',
         packages=PACKAGES_AARCH64,
+        data_files = [pyi_name],
         include_package_data=True)
 else:
   raise FileNotFoundError("sail lib not found")

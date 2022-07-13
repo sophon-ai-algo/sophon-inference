@@ -25,6 +25,7 @@ limitations under the License.  */
 #include "tools.h"
 #include "base64.h"
 #include "internal.h"
+#include "engine_multi.h"
 
 using namespace sail;
 namespace py = pybind11;
@@ -36,6 +37,7 @@ static void declareBMImageArray(py::module &m) {
   py::class_<BMImageArray<N>>(m, ss.str().c_str())
     .def(py::init<>())
     .def(py::init<Handle&, int, int, bm_image_format_ext, bm_image_data_format_ext>())
+    
     .def("__len__", &BMImageArray<N>::size)
     .def("__getitem__",
          [](BMImageArray<N> &v, size_t i) -> bm_image & {
@@ -72,10 +74,31 @@ static void declareBMImageArray(py::module &m) {
                bm_handle_t  handle = bm_image_get_handle((bm_image*)&t);
                if (handle != nullptr) {
                    bm_image_get_stride(t, stride);
-                   bm_image_create(handle, t.height, t.width, t.image_format, t.data_type, &v[i], stride);
-                   bm_device_mem_t dev_mem[3];
-                   bm_image_get_device_mem(t, dev_mem);
-                   bm_image_attach(v[i], dev_mem);
+                  for(int temp_idx = 0; temp_idx < v.size(); ++temp_idx){
+                    int ret = bm_image_create(handle, t.height, t.width, t.image_format, 
+                      t.data_type, &v[temp_idx], stride);
+                    if (BM_SUCCESS != ret) {
+                      SPDLOG_ERROR("bm_image_create err={}", ret);
+                      throw py::value_error();
+                    }
+                    // ret = bm_image_alloc_dev_mem_heap_mask(v[temp_idx], 6);
+                    // if (BM_SUCCESS != ret) {
+                    //   SPDLOG_ERROR("bm_image_alloc_dev_mem_heap_mask err={}", ret);
+                    //   throw py::value_error();
+                    // }
+                  }
+                  bm_image_alloc_contiguous_mem(N, v.data());
+                  //  bm_device_mem_t dev_mem[3];
+                  //  bm_image_get_device_mem(t, dev_mem);
+                  //  bm_image_attach(v[i], dev_mem);
+                  bmcv_copy_to_atrr_t attr;
+                  memset(&attr, 0, sizeof(attr));
+                  int ret = bmcv_image_copy_to(handle, attr, t, v[0]);
+                  if (BM_SUCCESS != ret) {
+                    SPDLOG_ERROR("bmcv_image_copy_to err={}", ret);
+                    throw py::value_error();
+                  }    
+                  v.set_need_free(true);
                }else{
                    SPDLOG_ERROR("src image handle=nullptr");
                    throw py::value_error();
@@ -85,7 +108,9 @@ static void declareBMImageArray(py::module &m) {
     )
     .def("check_need_free", (bool (BMImageArray<N>::*) ()) &BMImageArray<N>::check_need_free)
     .def("set_need_free", (void (BMImageArray<N>::*) (bool))   &BMImageArray<N>::set_need_free)
-    .def("create", (void (BMImageArray<N>::*)(Handle&, int, int, bm_image_format_ext, bm_image_data_format_ext)) &BMImageArray<N>::create);
+    .def("create", (void (BMImageArray<N>::*)(Handle&, int, int, bm_image_format_ext, bm_image_data_format_ext)) &BMImageArray<N>::create)
+    .def("copy_from",        &BMImageArray<N>::copy_from)
+    .def("attach_from",      &BMImageArray<N>::attach_from);
 }
 
 template<std::size_t N>
@@ -107,24 +132,26 @@ static void registerBMImageArrayFunctions(py::class_<Bmcv> &cls) {
      .def("yuv2bgr",             (BMImageArray<N> (Bmcv::*)(BMImageArray<N>&))                               &Bmcv::yuv2bgr)
      .def("warp",                (BMImageArray<N> (Bmcv::*)(BMImageArray<N>&, const std::array<std::pair<std::tuple<float, float, float>, std::tuple<float, float, float>>, N>&))              &Bmcv::warp)
      .def("convert_to",          (BMImageArray<N> (Bmcv::*)(BMImageArray<N>&, const std::tuple<std::pair<float, float>, std::pair<float, float>, std::pair<float, float>>&))                   &Bmcv::convert_to)
-     .def("convert_to",          (int             (Bmcv::*)(BMImageArray<N>&, BMImageArray<N>&, const std::tuple<std::pair<float, float>, std::pair<float, float>, std::pair<float, float>>&)) &Bmcv::convert_to);
-     
+     .def("convert_to",          (int             (Bmcv::*)(BMImageArray<N>&, BMImageArray<N>&, const std::tuple<std::pair<float, float>, std::pair<float, float>, std::pair<float, float>>&)) &Bmcv::convert_to)
+     .def("image_copy_to",          (int          (Bmcv::*)(BMImageArray<N>&, BMImageArray<N>&, int, int))  &Bmcv::image_copy_to,
+        py::arg("input"),py::arg("output"), py::arg("start_x")=0, py::arg("start_y")=0)
+     .def("image_copy_to_padding",  (int          (Bmcv::*)(BMImageArray<N>&, BMImageArray<N>&, unsigned int, unsigned int, unsigned int, int, int))  &Bmcv::image_copy_to_padding,
+        py::arg("input"),py::arg("output"), py::arg("padding_r"), py::arg("padding_g"), py::arg("padding_b"),py::arg("start_x")=0, py::arg("start_y")=0);
 }
 #endif
 
 PYBIND11_MODULE(sail, m) {
 
-  char temp[32] = {0};
-  std::ifstream readFile("../git_version");
-  readFile >> temp;
-  std::cout << temp<< std::endl;
-  readFile.close();
-
+  char temp[64] = {0};
+  get_sail_version(temp);
   using namespace pybind11::literals;
   m.attr("__version__") = temp;
   m.doc() = "sophon inference module";
 
   m.def("get_available_tpu_num", &get_available_tpu_num);
+  m.def("set_print_flag", &set_print_flag);
+  m.def("set_dump_io_flag", &set_dump_io_flag);
+  m.def("set_decoder_env",&set_decoder_env);
   m.def("_dryrun", &model_dryrun);
   m.def("_perf",   &multi_tpu_perf);
 
@@ -146,14 +173,20 @@ PYBIND11_MODULE(sail, m) {
 
   py::class_<Handle>(m, "Handle")
     .def(py::init<int>())
-    .def("get_device_id", &Handle::get_device_id);
+    .def("get_device_id", &Handle::get_device_id)
+    .def("get_sn",        &Handle::get_sn);
 
   py::class_<Tensor>(m, "Tensor")
-    .def(py::init<Handle, const std::vector<int>&, bm_data_type_t, bool, bool>())
+    .def(py::init<Handle, const std::vector<int>&, bm_data_type_t, bool, bool>(),
+      py::arg("handle"),py::arg("shape"),py::arg("dtype")=BM_FLOAT32,py::arg("own_sys_data")=false,py::arg("own_dev_data")=false)
     .def(py::init<Handle, py::array_t<float>&>())
     .def(py::init<Handle, py::array_t<int8_t>&>())
     .def(py::init<Handle, py::array_t<uint8_t>&>())
     .def(py::init<Handle, py::array_t<int32_t>&>())
+    .def(py::init<Handle, py::array_t<float>&, bool>())
+    .def(py::init<Handle, py::array_t<int8_t>&, bool>())
+    .def(py::init<Handle, py::array_t<uint8_t>&, bool>())
+    .def(py::init<Handle, py::array_t<int32_t>&, bool>())
     .def("shape",                 &Tensor::shape)
     .def("reshape",               &Tensor::reshape)
     .def("own_sys_data",          &Tensor::own_sys_data)
@@ -197,6 +230,10 @@ PYBIND11_MODULE(sail, m) {
     .def("get_output_dtype",      &Engine::get_output_dtype)
     .def("get_input_scale",       &Engine::get_input_scale)
     .def("get_output_scale",      &Engine::get_output_scale)
+    .def("create_input_tensors_map",  (std::map<std::string, Tensor&> (Engine::*) (const std::string&, int)) &Engine::create_input_tensors_map,
+      py::arg("graph_name"), py::arg("create_mode")=-1)
+    .def("create_output_tensors_map", (std::map<std::string, Tensor&> (Engine::*) (const std::string&, int)) &Engine::create_output_tensors_map,
+      py::arg("graph_name"), py::arg("create_mode")=-1)
     .def("process", (void (Engine::*)(const std::string&, std::map<std::string, Tensor&>&, std::map<std::string, Tensor&>&)) &Engine::process)
     .def("process", (void (Engine::*)(const std::string&, std::map<std::string, Tensor&>&, std::map<std::string, std::vector<int>>&, std::map<std::string, Tensor&>&)) &Engine::process)
     .def("process", (std::map<std::string, pybind11::array_t<float>> (Engine::*)(const std::string&, std::map<std::string, pybind11::array_t<float>>&)) &Engine::process);
@@ -215,9 +252,11 @@ PYBIND11_MODULE(sail, m) {
     .def("get_frame_shape",      &Decoder::get_frame_shape)
     .def("read",                 (BMImage  (Decoder::*)(Handle&))            &Decoder::read)
     .def("read",                 (int      (Decoder::*)(Handle&, BMImage&))  &Decoder::read)
-    .def("read_",                (bm_image (Decoder::*)(Handle&))            &Decoder::read_)
+    // .def("read_",                (bm_image (Decoder::*)(Handle&))            &Decoder::read_)
     .def("read_",                (int      (Decoder::*)(Handle&, bm_image&)) &Decoder::read_)
-    .def("get_fps",              (float      (Decoder::*)() const)             &Decoder::get_fps);
+    .def("get_fps",              (float      (Decoder::*)() const)             &Decoder::get_fps)
+    .def("release",              &Decoder::release)
+    .def("reconnect",            &Decoder::reconnect);
 #endif
 
 #ifdef USE_BMCV
@@ -248,7 +287,7 @@ PYBIND11_MODULE(sail, m) {
     .value("DATA_TYPE_EXT_4N_BYTE_SIGNED", bm_image_data_format_ext::DATA_TYPE_EXT_4N_BYTE_SIGNED)
     .export_values();
 
-  /* cannot be instantiated in python, the only use case is: BMImageArray[i] = Decoder.read_() */
+  /* cannot be instantiated in python, the only use case is: Decoder.read_(handle, BMImageArray[i]) */
   py::class_<bm_image>(m, "bm_image")
     .def("width",                [](bm_image &img) -> int { return img.width;  })
     .def("height",               [](bm_image &img) -> int { return img.height; })
@@ -271,9 +310,16 @@ PYBIND11_MODULE(sail, m) {
   declareBMImageArray<2>(m); // BMImageArray2D
   declareBMImageArray<3>(m); // BMImageArray3D
   declareBMImageArray<4>(m); // BMImageArray4D
+  declareBMImageArray<8>(m); // BMImageArray8D
+  declareBMImageArray<16>(m); // BMImageArray16D
+  declareBMImageArray<32>(m); // BMImageArray32D
+  declareBMImageArray<64>(m); // BMImageArray64D
+  declareBMImageArray<128>(m); // BMImageArray128D
+  declareBMImageArray<256>(m); // BMImageArray256D
 
   py::class_<PaddingAtrr>(m, "PaddingAtrr")
     .def(py::init<>())
+    .def(py::init<unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,unsigned int,unsigned int>())
     .def("set_stx",              (void (PaddingAtrr::*)(unsigned int))   &PaddingAtrr::set_stx)
     .def("set_sty",              (void (PaddingAtrr::*)(unsigned int))   &PaddingAtrr::set_sty)
     .def("set_w",                (void (PaddingAtrr::*)(unsigned int))   &PaddingAtrr::set_w)
@@ -300,18 +346,41 @@ PYBIND11_MODULE(sail, m) {
     .def("vpp_resize_padding",  (BMImage (Bmcv::*)(BMImage&, int, int, PaddingAtrr&))   &Bmcv::vpp_resize_padding)
     .def("yuv2bgr",             (BMImage (Bmcv::*)(BMImage&))                               &Bmcv::yuv2bgr)
     .def("warp",                (BMImage (Bmcv::*)(BMImage&, const std::pair<std::tuple<float, float, float>, std::tuple<float, float, float>>&))                     &Bmcv::warp)
+    .def("warp_perspective",    (BMImage (Bmcv::*)(BMImage&, const std::tuple<std::pair<int, int>,std::pair<int, int>,std::pair<int, int>,std::pair<int, int>>&, int, int, bm_image_format_ext, bm_image_data_format_ext, int))  &Bmcv::warp_perspective,
+      py::arg("input"),py::arg("coordinate"),py::arg("output_width"),py::arg("output_height"),py::arg("format")=FORMAT_BGR_PLANAR,py::arg("dtype")=DATA_TYPE_EXT_1N_BYTE,py::arg("use_bilinear")=0)
     .def("convert_to",          (BMImage (Bmcv::*)(BMImage&, const std::tuple<std::pair<float, float>, std::pair<float, float>, std::pair<float, float>>&))           &Bmcv::convert_to)
     .def("convert_to",          (int     (Bmcv::*)(BMImage&, BMImage&, const std::tuple<std::pair<float, float>, std::pair<float, float>, std::pair<float, float>>&)) &Bmcv::convert_to)
     .def("rectangle",           &Bmcv::rectangle)
+    .def("rectangle_",          &Bmcv::rectangle_)
+    .def("putText",             &Bmcv::putText)
+    .def("putText_",            &Bmcv::putText_)
     .def("imwrite",             &Bmcv::imwrite)
-    .def("imwrite_",             &Bmcv::imwrite_)
+    .def("imwrite_",            &Bmcv::imwrite_)
     .def("get_handle",          &Bmcv::get_handle)
     .def("get_bm_data_type",         (bm_data_type_t (Bmcv::*)(bm_image_data_format_ext)) &Bmcv::get_bm_data_type)
-    .def("get_bm_image_data_format", (bm_image_data_format_ext (Bmcv::*)(bm_data_type_t)) &Bmcv::get_bm_image_data_format);
+    .def("get_bm_image_data_format", (bm_image_data_format_ext (Bmcv::*)(bm_data_type_t)) &Bmcv::get_bm_image_data_format)
+    .def("vpp_convert_format",          (BMImage (Bmcv::*)(BMImage&))                     &Bmcv::vpp_convert_format)
+    .def("vpp_convert_format",          (int     (Bmcv::*)(BMImage&, BMImage&))           &Bmcv::vpp_convert_format)
+    .def("convert_format",              (BMImage (Bmcv::*)(BMImage&))                     &Bmcv::convert_format)
+    .def("convert_format",              (int     (Bmcv::*)(BMImage&, BMImage&))           &Bmcv::convert_format)
+    .def("crop_and_resize_padding",     (BMImage (Bmcv::*)(BMImage&, int, int, int, int, int, int, PaddingAtrr&))   &Bmcv::crop_and_resize_padding)
+    .def("image_add_weighted",          (int     (Bmcv::*)(BMImage&, float, BMImage&, float, float, BMImage&))      &Bmcv::image_add_weighted)
+    .def("image_add_weighted",          (int     (Bmcv::*)(BMImage&, float, BMImage&, float, float, BMImage&))      &Bmcv::image_add_weighted)
+    .def("image_copy_to",               (int     (Bmcv::*)(BMImage&, BMImage&, int, int))  &Bmcv::image_copy_to,
+      py::arg("input"),py::arg("output"), py::arg("start_x")=0, py::arg("start_y")=0)
+    .def("image_copy_to_padding",       (int     (Bmcv::*)(BMImage&, BMImage&, unsigned int, unsigned int, unsigned int, int, int))  &Bmcv::image_copy_to_padding,
+      py::arg("input"),py::arg("output"), py::arg("padding_r"), py::arg("padding_g"), py::arg("padding_b"),py::arg("start_x")=0, py::arg("start_y")=0)
+    .def("nms",  (pybind11::array_t<float> (Bmcv::*)(pybind11::array_t<float>, float)) &Bmcv::nms);
 
   registerBMImageArrayFunctions<2>(cls);
   registerBMImageArrayFunctions<3>(cls);
   registerBMImageArrayFunctions<4>(cls);
+  registerBMImageArrayFunctions<8>(cls);
+  // registerBMImageArrayFunctions<16>(cls);
+  // registerBMImageArrayFunctions<32>(cls);
+  // registerBMImageArrayFunctions<64>(cls);
+  // registerBMImageArrayFunctions<128>(cls);
+  // registerBMImageArrayFunctions<256>(cls);
 
   m.def("base64_encode", [](Handle& handle, py::bytes a) {
          std::string str1 = (std::string)a;
@@ -354,5 +423,19 @@ PYBIND11_MODULE(sail, m) {
         delete []buf;
         return ndarray;
     }, "Bitmain base64 decoder");
+
 #endif
+    py::class_<MultiEngine>(m, "MultiEngine")
+    .def(py::init<const std::string&, std::vector<int>, bool, int>(),
+      py::arg("bmodel_path"),py::arg("tpu_ids"), py::arg("sys_out")=true, py::arg("graph_idx")=0)
+    .def("get_device_ids",        &MultiEngine::get_device_ids)
+    .def("get_graph_names",       &MultiEngine::get_graph_names)
+    .def("get_input_names",       &MultiEngine::get_input_names)
+    .def("get_output_names",      &MultiEngine::get_output_names)
+    .def("get_input_shape",       &MultiEngine::get_input_shape)
+    .def("get_output_shape",      &MultiEngine::get_output_shape)
+    .def("set_print_flag",        &MultiEngine::set_print_flag)
+    .def("set_print_time",        &MultiEngine::set_print_time)
+    .def("process", (std::vector<std::map<std::string, Tensor*>> (MultiEngine::*)(std::vector<std::map<std::string, Tensor*>>&)) &MultiEngine::process)
+    .def("process", (std::map<std::string, pybind11::array_t<float>> (MultiEngine::*)(std::map<std::string, pybind11::array_t<float>>&)) &MultiEngine::process);
 }

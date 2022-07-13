@@ -43,6 +43,9 @@ if os.path.exists(X86_PATH):
 else:
   raise IOError("sail python lib not found")
 
+pyi_name = "sophon/sail.pyi"
+shutil.copy("../../src/sail.pyi",pyi_name)
+
 # sophon python module
 PACKAGES = ['sophon', 'sophon.auto_split', 'sophon.auto_split.common',
             'sophon.auto_split.compiler', 'sophon.auto_split.external',
@@ -66,9 +69,10 @@ setup(name='sophon',
       version=git_version,
       description='Inference samples for deep learning on Sophon products.',
       author='Sophon algorithm team',
-      url='http://www.sophgo.com',
+      url='https://github.com/sophon-ai-algo/sophon-inference',
       long_description='''
 Guide to deploying deep-learning inference networks and deep vision primitives on Sophon TPU.
 ''',
       packages=PACKAGES,
+      data_files = [pyi_name],
       include_package_data=True)

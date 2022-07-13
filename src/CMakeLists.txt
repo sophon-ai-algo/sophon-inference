@@ -1,6 +1,6 @@
 
 # set sail source file
-set(CORE_SRC cvwrapper.cpp engine.cpp graph.cpp tensor.cpp tools.cpp base64.cpp)
+set(CORE_SRC cvwrapper.cpp engine.cpp graph.cpp tensor.cpp tools.cpp base64.cpp engine_multi.cpp)
 
 # build cpp api lib
 add_library(sail SHARED ${CORE_SRC})

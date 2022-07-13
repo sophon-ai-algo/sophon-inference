@@ -115,21 +115,6 @@ class DECL_EXPORT Engine {
       const Handle&      handle,
       IOMode             mode);
 
-  /**
-   * @brief Copy constructor.
-   *
-   * @param other An other Engine instance.
-   */
-  Engine(const Engine& other);
-
-  /**
-   * @brief Assignment function.
-   *
-   * @param other An other Engine instance.
-   * @return Reference of a Engine instance.
-   */
-  Engine& operator=(const Engine& other);
-
   ~Engine();
 
   /**
@@ -437,6 +422,26 @@ class DECL_EXPORT Engine {
    * @param size Size of data
    */
   void scale_fp32_to_int32(float* src, int32_t* dst, float scale, int size);
+
+  /**
+   * @brief Create input tensors map, according to and bmodel.
+   * @param graph_name   The specified graph name
+   * @param create_mode Tensor Create mode
+   *  case 0: only allocate system memory 
+   *  case 1: only allocate device memory
+   *  case other: according to engine IOMode
+   */
+  std::map<std::string, Tensor*> create_input_tensors_map(const std::string& graph_name, int create_mode = -1);
+  
+  /**
+   * @brief Create output tensors map, according to and bmodel.
+   * @param graph_name   The specified graph name 
+   * @param create_mode Tensor Create mode 
+   *  case 0: only allocate system memory
+   *  case 1: only allocate device memory
+   *  case other: according to engine IOMode
+   */
+  std::map<std::string, Tensor*> create_output_tensors_map(const std::string& graph_name, int create_mode = -1);
   /**
    * @brief Inference with builtin input and output tensors.
    *
@@ -516,86 +521,26 @@ class DECL_EXPORT Engine {
 #endif
 
  private:
-  /**
-   * @brief Initialize bmruntime.
-   *
-   * @return Program state
-   *     @retval O      Success
-   *     @retval others Failure
-   */
-  int init_bmrt();
+
+  class Engine_CC;
+  class Engine_CC* const _impl;
 
   /**
-   * @brief Judge if the shape of input tensor is valid.
+   * @brief Forbidden copy constructor.
+   * @brief Copy constructor.
    *
-   * @param graph_name   The specified graph name
-   * @param input_shapes Specified shapes of all input tensors of the graph
-   * @return Program state
-   *     @retval O      Success
-   *     @retval others Failure
+   * @param other An other Engine instance.
    */
-  int is_input_shape_valid(
-      const std::string&                             graph_name,
-      const std::map<std::string, std::vector<int>>& input_shapes);
-  /**
-   * @brief Update information of newly loaded models.
-   *
-   *
-   * @param graph_names Graph names of newly loaded models
-   * @return Program state
-   *     @retval O      Success
-   *     @retval others Failure
-   */
-  int update_status(std::vector<std::string> graph_names);
+  Engine(const Engine& other) = delete;
 
   /**
-   * @brief Free all resources.
+   * @brief Forbidden assignment function.
+   * @brief Assignment function.
+   *
+   * @param other An other Engine instance.
+   * @return Reference of a Engine instance.
    */
-  void free();
-
-  /// Indicator of where to store input and output tensors.
-  /// SYSI: Input tensors are in system memory while output tensors are
-  ///       in device memory.
-  /// SYSO: Input tensors are in device memory while output tensors are
-  ///       in system memory.
-  /// SYSIO: Both input and output tensors are in system memory.
-  /// DEVIO: Both input and output tensors are in device memory.
-  IOMode io_mode_;
-
-  /// Handle instance.
-  Handle handle_;
-
-  /// Pointer to bmruntime instance.
-  void* p_bmrt_;
-
-  /// Graph instance for each model.
-  std::map<std::string, std::shared_ptr<Graph>> graphs_;
-
-  /// Data types of all input tensors for int8 models.
-  std::map<std::string, std::map<std::string, bm_data_type_t>> input_dtypes_;
-
-  /// Data types of all output tensors for int8 models.
-  std::map<std::string, std::map<std::string, bm_data_type_t>> output_dtypes_;
-
-  /// Scales of all input tensors for int8 models.
-  std::map<std::string, std::map<std::string, float>> input_scales_;
-
-  /// Scales of all output tensors for int8 models.
-  std::map<std::string, std::map<std::string, float>> output_scales_;
-
-  /// Shapes of all input tensors.
-  std::map<std::string, std::map<std::string, std::vector<int>>> input_shapes_;
-
-  /// Shapes of all output tensors.
-  std::map<std::string, std::map<std::string, std::vector<int>>> output_shapes_;
-
-  /// Max shapes of input tensors.
-  std::map<std::string, std::map<std::string, std::vector<int>>>
-      max_input_shapes_;
-
-  /// Max shapes of output tensors.
-  std::map<std::string, std::map<std::string, std::vector<int>>>
-      max_output_shapes_;
+  Engine& operator=(const Engine& other) = delete;
 };
 
 }  // namespace sail

@@ -16,6 +16,16 @@ for root,dirs,files in os.walk(LIB_DIR):
     if file.split('.')[0] == 'sail':
       X86_PATH=os.path.join(root,file)
 
+if os.path.exists(DST_PATH):
+  objs = os.listdir(DST_PATH)
+  for obj in objs:
+    if obj[-3:] == ".so":
+      print("remove file: {}".format(obj))
+      os.remove(os.path.join(DST_PATH,obj))
+
+if os.path.exists("./dist"):
+  os.system("rm -f ./dist/*")
+
 if os.path.exists(X86_PATH):
   print("x86")
   try:
@@ -24,6 +34,9 @@ if os.path.exists(X86_PATH):
     pass
 else:
   raise IOError("sail python lib not found")
+
+pyi_name = "sophon/sail.pyi"
+shutil.copy("../../src/sail.pyi",pyi_name)
 
 # sophon python module
 PACKAGES = ['sophon', 'sophon.auto_split', 'sophon.auto_split.common',
@@ -39,19 +52,19 @@ PACKAGES = ['sophon', 'sophon.auto_split', 'sophon.auto_split.common',
             'sophon.algokit.engine', 'sophon.algokit.libs',
             'sophon.algokit.libs.extend_layer', 'sophon.algokit.utils']
 
-filehandle = open("../../git_version","r");
-git_version = filehandle.readline();
-print(git_version);
+filehandle = open("../../git_version","r")
+git_version = filehandle.readline().rstrip("\n").rstrip("\r")
+print(git_version)
 
 # wrap sophon python module
 setup(name='sophon',
       version=git_version,
       description='Inference samples for deep learning on Sophon products.',
       author='Sophon algorithm team',
-      author_email='hong.liu@bitmain.com',
-      url='https://git.bitmain.vip/ai-algorithm/sophon-inference',
+      url='https://github.com/sophon-ai-algo/sophon-inference',
       long_description='''
 Guide to deploying deep-learning inference networks and deep vision primitives on Sophon TPU.
 ''',
       packages=PACKAGES,
+      data_files = [pyi_name],
       include_package_data=True)
