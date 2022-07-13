@@ -15,7 +15,7 @@ option(USE_BMCV              "ON for USE BM-FFMPEG"             ON)
 # base on local by default
 option(USE_LOCAL             "develop locally"                  OFF)
 option(USE_CENTOS            "ON for centos OFF for ubuntu "    OFF)
-option(USE_BMNNSDK2          "complie with bmnnsdk2"            ON)
+option(USE_SOPHONSDK3          "complie with sophonsdk3"            ON)
 option(USE_ALLINONE          "on for All-in-one build"          OFF)
 option(WITH_TEST             "build unit tests"                 ON)
 option(WITH_DOC              "build html or pdf"                OFF)
@@ -89,15 +89,15 @@ endif()
 
 if ("${SDK_TYPE}" STREQUAL "local")
     set(USE_LOCAL ON)
-    set(USE_BMNNSDK2 OFF)
+    set(USE_SOPHONSDK3 OFF)
     set(USE_ALLINONE OFF)
-elseif("${SDK_TYPE}" STREQUAL "bmnnsdk2")
+elseif("${SDK_TYPE}" STREQUAL "sophonsdk3")
     set(USE_LOCAL OFF)
-    set(USE_BMNNSDK2 ON)
+    set(USE_SOPHONSDK3 ON)
     set(USE_ALLINONE OFF)
 elseif("${SDK_TYPE}" STREQUAL "allinone")
     set(USE_LOCAL OFF)
-    set(USE_BMNNSDK2 OFF)
+    set(USE_SOPHONSDK3 OFF)
     set(USE_ALLINONE ON)
 else()
     message("SDK_TYPE=${SDK_TYPE},default is local")
@@ -189,77 +189,77 @@ if (USE_LOCAL)
   set(bmnn_inc_dirs ${BM168X_PATH}/include ${NNTC_PATH}/include)
   set(bmnn_link_dirs ${BM168X_PATH}/libs ${NNTC_PATH}/lib)
 
-elseif (USE_BMNNSDK2)
-  # use bmnnsdk2 as build root
+elseif (USE_SOPHONSDK3)
+  # use sophonsdk3 as build root
   if (DEFINED ENV{REL_TOP})
-    set(BMNNSDK2_PATH $ENV{REL_TOP})
+    set(SOPHONSDK3_PATH $ENV{REL_TOP})
   else ()
-    set(BMNNSDK2_PATH /home/yuan/bmnnsdk2/bmnnsdk2-latest)
+    set(SOPHONSDK3_PATH /home/yuan/sophonsdk3/sophonsdk3-latest)
   endif ()
-    ## bmnnsdk2 common include
-  set(bmnn_inc_dirs ${BMNNSDK2_PATH}/include
-          ${BMNNSDK2_PATH}/include/bmlib
-          ${BMNNSDK2_PATH}/include/bmruntime)
-  set(opencv_inc_dirs ${BMNNSDK2_PATH}/include/opencv/opencv4)
-  set(ffmpeg_inc_dirs ${BMNNSDK2_PATH}/include/ffmpeg)
+    ## sophonsdk3 common include
+  set(bmnn_inc_dirs ${SOPHONSDK3_PATH}/include
+          ${SOPHONSDK3_PATH}/include/bmlib
+          ${SOPHONSDK3_PATH}/include/bmruntime)
+  set(opencv_inc_dirs ${SOPHONSDK3_PATH}/include/opencv/opencv4)
+  set(ffmpeg_inc_dirs ${SOPHONSDK3_PATH}/include/ffmpeg)
 
   if (BUILD_X86_PCIE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    set(bmnn_link_dirs ${BMNNSDK2_PATH}/lib/bmnn/pcie
-            ${BMNNSDK2_PATH}/lib/decode/x86)
+    set(bmnn_link_dirs ${SOPHONSDK3_PATH}/lib/bmnn/pcie
+            ${SOPHONSDK3_PATH}/lib/decode/pcie)
     ## OpenCV lib dirs
-    set(opencv_link_dirs ${BMNNSDK2_PATH}/lib/opencv/x86)
+    set(opencv_link_dirs ${SOPHONSDK3_PATH}/lib/opencv/pcie)
     ## Ffmpeg
-    set(ffmpeg_link_dirs ${BMNNSDK2_PATH}/lib/ffmpeg/x86)
+    set(ffmpeg_link_dirs ${SOPHONSDK3_PATH}/lib/ffmpeg/pcie)
 
   elseif (BUILD_ARM_PCIE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a")
-    set(bmnn_link_dirs ${BMNNSDK2_PATH}/lib/bmnn/arm_pcie
-            ${BMNNSDK2_PATH}/lib/decode/arm_pcie)
+    set(bmnn_link_dirs ${SOPHONSDK3_PATH}/lib/bmnn/arm_pcie
+            ${SOPHONSDK3_PATH}/lib/decode/arm_pcie)
     ## OpenCV
-    set(opencv_link_dirs ${BMNNSDK2_PATH}/lib/opencv/arm_pcie)
+    set(opencv_link_dirs ${SOPHONSDK3_PATH}/lib/opencv/arm_pcie)
     ## Ffmpeg
-    set(ffmpeg_link_dirs ${BMNNSDK2_PATH}/lib/ffmpeg/arm_pcie)
+    set(ffmpeg_link_dirs ${SOPHONSDK3_PATH}/lib/ffmpeg/arm_pcie)
   elseif (BUILD_SOC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a")
-    set(bmnn_link_dirs ${BMNNSDK2_PATH}/lib/bmnn/soc
-            ${BMNNSDK2_PATH}/lib/decode/soc)
+    set(bmnn_link_dirs ${SOPHONSDK3_PATH}/lib/bmnn/soc
+            ${SOPHONSDK3_PATH}/lib/decode/soc)
     ## OpenCV
-    set(opencv_link_dirs ${BMNNSDK2_PATH}/lib/opencv/soc)
+    set(opencv_link_dirs ${SOPHONSDK3_PATH}/lib/opencv/soc)
     ## Ffmpeg
-    set(ffmpeg_link_dirs ${BMNNSDK2_PATH}/lib/ffmpeg/soc)
+    set(ffmpeg_link_dirs ${SOPHONSDK3_PATH}/lib/ffmpeg/soc)
   elseif (BUILD_MIPS64)
 
   elseif (BUILD_CMODEL)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    set(bmnn_link_dirs ${BMNNSDK2_PATH}/lib/bmnn/cmodel
-            ${BMNNSDK2_PATH}/lib/decode/cmodel
+    set(bmnn_link_dirs ${SOPHONSDK3_PATH}/lib/bmnn/cmodel
+            ${SOPHONSDK3_PATH}/lib/decode/cmodel
             )
     ## OpenCV
     #find_package(OpenCV 3 REQUIRED)
-    set(opencv_link_dirs ${BMNNSDK2_PATH}/lib/opencv/cmodel)
+    set(opencv_link_dirs ${SOPHONSDK3_PATH}/lib/opencv/cmodel)
     ## Ffmpeg
-    set(ffmpeg_link_dirs ${BMNNSDK2_PATH}/lib/ffmpeg/cmodel)
+    set(ffmpeg_link_dirs ${SOPHONSDK3_PATH}/lib/ffmpeg/cmodel)
   elseif (BUILD_SW64)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-    set(bmnn_link_dirs ${BMNNSDK2_PATH}/lib/bmnn/sw64
-            ${BMNNSDK2_PATH}/lib/decode/sw64
+    set(bmnn_link_dirs ${SOPHONSDK3_PATH}/lib/bmnn/sw64
+            ${SOPHONSDK3_PATH}/lib/decode/sw64
             )
     ## OpenCV
     #find_package(OpenCV 3 REQUIRED)
-    set(opencv_link_dirs ${BMNNSDK2_PATH}/lib/opencv/sw64)
+    set(opencv_link_dirs ${SOPHONSDK3_PATH}/lib/opencv/sw64)
     ## Ffmpeg
-    set(ffmpeg_link_dirs ${BMNNSDK2_PATH}/lib/ffmpeg/sw64)
+    set(ffmpeg_link_dirs ${SOPHONSDK3_PATH}/lib/ffmpeg/sw64)
   elseif (BUILD_LOONGARCH64)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    set(bmnn_link_dirs ${BMNNSDK2_PATH}/lib/bmnn/loongarch64
-            ${BMNNSDK2_PATH}/lib/decode/loongarch64
+    set(bmnn_link_dirs ${SOPHONSDK3_PATH}/lib/bmnn/loongarch64
+            ${SOPHONSDK3_PATH}/lib/decode/loongarch64
             )
     ## OpenCV
     #find_package(OpenCV 3 REQUIRED)
-    set(opencv_link_dirs ${BMNNSDK2_PATH}/lib/opencv/loongarch64)
+    set(opencv_link_dirs ${SOPHONSDK3_PATH}/lib/opencv/loongarch64)
     ## Ffmpeg
-    set(ffmpeg_link_dirs ${BMNNSDK2_PATH}/lib/ffmpeg/loongarch64)
+    set(ffmpeg_link_dirs ${SOPHONSDK3_PATH}/lib/ffmpeg/loongarch64)
   else ()
     message(ERROR "not supported")
   endif ()
@@ -331,9 +331,9 @@ else()
               ${BM168X_PATH}/libs/cmodel)
       ## OpenCV
       #find_package(OpenCV 3 REQUIRED)
-      #set(opencv_link_dirs ${BMNNSDK2_PATH}/lib/opencv/cmodel)
+      #set(opencv_link_dirs ${SOPHONSDK3_PATH}/lib/opencv/cmodel)
       ## Ffmpeg
-      #set(ffmpeg_link_dirs ${BMNNSDK2_PATH}/lib/ffmpeg/cmodel)
+      #set(ffmpeg_link_dirs ${SOPHONSDK3_PATH}/lib/ffmpeg/cmodel)
   elseif (BUILD_SW64)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -std=c++14")
       set(bmnn_link_dirs ${NNTC_PATH}/lib/bmnn/sw64/lib_${CXX_ABI}

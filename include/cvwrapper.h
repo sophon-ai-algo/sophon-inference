@@ -43,6 +43,11 @@ extern "C" {
 #include <bmcv_api_ext.h>
 #endif
 
+#ifdef PYTHON
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+#endif
+
 #include <string>
 #include <vector>
 #include "tensor.h"
@@ -54,10 +59,25 @@ namespace cv { class Mat; }
 /// Namespace containing all symbols from the sail library.
 namespace sail {
 
+/**
+ * @brief Set Decoder environment, must set befor Decoder Constructor, else use default values
+ * refcounted_frames,extra_frame_buffer_num,rtsp_transport,stimeout,
+ * rtsp_flags, buffer_size, max_delay, probesize, analyzeduration
+ */
+int DECL_EXPORT set_decoder_env(std::string env_name, std::string env_value);
+
 class PaddingAtrr {
 public:
-    PaddingAtrr(){};
-    ~PaddingAtrr(){};
+    explicit PaddingAtrr(){};
+    explicit PaddingAtrr(unsigned int crop_start_x,
+        unsigned int crop_start_y,
+        unsigned int crop_width,
+        unsigned int crop_height,
+        unsigned char padding_value_r,
+        unsigned char padding_value_g,
+        unsigned char padding_value_b);
+    PaddingAtrr(const PaddingAtrr& other);
+
     void set_stx(unsigned int stx);
     void set_sty(unsigned int sty);
     void set_w(unsigned int w);
@@ -193,15 +213,17 @@ class DECL_EXPORT BMImage {
    */
   bm_image_data_format_ext dtype() const;
 
-  bool need_to_free() const {return need_to_free_; };
+  bool need_to_free() const;
   int empty_check() const;
   int get_plane_num() const;
  protected:
   /// inner bm_image
   void reset(int w, int h);
-  bm_image img_;
 
  private:
+  class BMImage_CC;
+  class BMImage_CC* const _impl;
+
   BMImage(const BMImage &other) = delete;
   BMImage& operator=(const BMImage &other) = delete;
 
@@ -216,11 +238,7 @@ class DECL_EXPORT BMImage {
   void allocate();
   bool is_created() const;
 
-  bool need_to_free_;
-
   friend class Bmcv;
-  friend bm_image move(BMImage  &img);
-  friend BMImage  move(bm_image &img);
 };
 
 template<std::size_t N>
@@ -241,6 +259,12 @@ class BMImageArray : public std::array<bm_image, N> {
       bm_image_data_format_ext dtype,
       int                      *stride);
 
+  // BMImageArray(const std::vector<BMImage> &data);
+  // int copy_from(Handle &handle, int i, BMImage &data);
+  // int attach_from(Handle &handle, int i, BMImage &data);
+
+  int copy_from(int i, BMImage &data);
+  int attach_from(int i, BMImage &data);
   virtual ~BMImageArray();
 
   BMImageArray(BMImageArray &&other);
@@ -253,6 +277,9 @@ class BMImageArray : public std::array<bm_image, N> {
             int                      w,
             bm_image_format_ext      format,
             bm_image_data_format_ext dtype);
+
+  void to_tensor(Tensor &tensor);
+
  private:
   BMImageArray(const BMImageArray&) = delete;
   BMImageArray& operator=(const BMImageArray&) = delete;
@@ -275,160 +302,16 @@ class BMImageArray : public std::array<bm_image, N> {
   friend class Bmcv;
 };
 
-template<std::size_t N>
-BMImageArray<N>::BMImageArray() : need_to_free_(false) {
-    for(int i= 0;i < N; ++i) {
-        this->at(i).image_format = FORMAT_BGR_PLANAR;
-        this->at(i).data_type = DATA_TYPE_EXT_1N_BYTE;
-        this->at(i).width = this->at(i).height = 0;
-        this->at(i).image_private = nullptr;
-    }
-}
-
-template<std::size_t N>
-BMImageArray<N>::BMImageArray(
-    Handle                   &handle,
-    int                      h,
-    int                      w,
-    bm_image_format_ext      format,
-    bm_image_data_format_ext dtype
-) : need_to_free_(false) {
-  create(handle, h, w, format, dtype);
-  //allocate();
-}
-
-template<std::size_t N>
-BMImageArray<N>::BMImageArray(
-    Handle                   &handle,
-    int                      h,
-    int                      w,
-    bm_image_format_ext      format,
-    bm_image_data_format_ext dtype,
-    int                      *stride
-) : need_to_free_(false) {
-  create(handle, h, w, format, dtype, stride);
-  //allocate();
-}
-
-template<std::size_t N>
-BMImageArray<N>::~BMImageArray() {
-  destroy();
-}
-
-template<std::size_t N>
-BMImageArray<N>::BMImageArray(BMImageArray<N> &&other) : need_to_free_(false) {
-  *this = std::move(other);
-}
-
-template<std::size_t N>
-BMImageArray<N>& BMImageArray<N>::operator=(BMImageArray<N> &&other)
-{
-  if (this != &other) {
-    destroy();
-    for (size_t i = 0; i < N; i ++) {
-      this->at(i).width         = other.at(i).width;
-      this->at(i).height        = other.at(i).height;
-      this->at(i).image_format  = other.at(i).image_format;
-      this->at(i).data_type     = other.at(i).data_type;
-      this->at(i).image_private = other.at(i).image_private;
-      other.at(i).image_private = nullptr;
-    }
-    this->need_to_free_ = other.need_to_free_;
-    other.need_to_free_ = false;
-  }
-  return *this;
-}
-
-template<std::size_t N>
-bool BMImageArray<N>::is_created() const {
-  return !this->empty() && (this->at(0).image_private != nullptr);
-}
-
-template<std::size_t N>
-bm_image_format_ext BMImageArray<N>::format(int index) const {
-  return this->at(index).image_format;
-}
-
-template<std::size_t N>
-void BMImageArray<N>::create(
-  Handle                   &handle,
-  int                      h,
-  int                      w,
-  bm_image_format_ext      format,
-  bm_image_data_format_ext dtype,
-  int                      *stride
-) {
-    // clear old before.
-    destroy();
-    // create new instance
-    for (size_t i = 0; i < N; i++) {
-        bm_image_create(handle.data(), h, w, format, dtype, &this->at(i), stride);
-    }
-    bm_image_alloc_contiguous_mem(N, this->data());
-    need_to_free_ = true;
-}
-
-    template<std::size_t N>
-    void BMImageArray<N>::create(
-            Handle                   &handle,
-            int                      h,
-            int                      w,
-            bm_image_format_ext      format,
-            bm_image_data_format_ext dtype
-    ) {
-        create(handle, h, w, format, dtype, nullptr);
-    }
-
-
-template<std::size_t N>
-void BMImageArray<N>::reset(
-        int                      h,
-        int                      w) {
-
-    if (this->at(0).width != w || this->at(0).height != h)
-    {
-        SPDLOG_INFO("reset image, src({},{}) dst({},{})",
-                this->at(0).width,
-                this->at(0).height,
-                w, h);
-
-        bm_handle_t bmHandle=nullptr;
-        if (need_to_free_) {
-            bmHandle = bm_image_get_handle(&this->at(0));
-            bm_image_free_contiguous_mem(N, this->data());
-            need_to_free_ = false;
-        }
-
-        for (size_t i = 0; i < N; i ++) {
-            bm_image_destroy(this->at(i));
-            this->at(i).image_private=nullptr;
-        }
-
-        if (bmHandle != nullptr) {
-            for (size_t i = 0; i < N; i ++) {
-                bm_image_create(bmHandle, h, w, this->at(0).image_format, this->at(0).data_type, &this->at(i));
-            }
-        }
-
-        bm_image_alloc_contiguous_mem(N, this->data());
-        need_to_free_ = true;
-    }
-}
-
-template<std::size_t N>
-void BMImageArray<N>::destroy() {
-  if (need_to_free_){
-      bm_image_free_contiguous_mem(N, this->data());
-      need_to_free_ = false;
-  }
-
-  for (size_t i = 0; i < N; i++) {
-        bm_image_destroy(this->at(i));
-        this->at(i).image_private = nullptr;
-  }
-
-  
-}
+template class BMImageArray<1>;     //特化
+template class BMImageArray<2>;     //特化
+template class BMImageArray<3>;     //特化
+template class BMImageArray<4>;     //特化
+template class BMImageArray<8>;     //特化
+template class BMImageArray<16>;    //特化
+template class BMImageArray<32>;    //特化
+template class BMImageArray<64>;    //特化
+template class BMImageArray<128>;   //特化
+template class BMImageArray<256>;   //特化
 
 #endif
 
@@ -583,62 +466,20 @@ class DECL_EXPORT Decoder {
    *  @return the fps of the video
    */
   float get_fps() const;
- private:
-  /**
-   * @brief Grabs the next frame.
-   *
-   * @param frame Reference of frame to be read to
-   * @return True for success and false for failure
-   */
-  bool grab(Frame& frame);
-  /**
-   * @brief Convert frame with format of AV_PIX_FMT_NV12 to bm_image.
-   *
-   * @param image Reference of BMImage to convert to
-   */
-  void nv12_frame_to_image(Handle& handle, bm_image& image);
-  void convert_to_yuv420p();
-  void reset_decode(const std::string& file_path,
-                  bool   compressed = true,
-                  int    tpu_id = 0);
 
-  /// Path to the Decoder file.
-  std::string file_path_;
-  /// TPU ID
-  int tpu_id_;
-  /// Pointer to an AVFormatContext instance.
-  AVFormatContext* fmt_ctx_;
-  /// Pointer to an AVCodecContext instance.
-  AVCodecContext* video_dec_ctx_;
-  /// Pointer to an AVStream instance.
-  AVStream* video_stream_;
-  /// Index of stream.
-  int video_stream_idx_;
-  /// An AVPacket instance.
-  AVPacket pkt_;
-  /// Count of Decoder frames.
-  int video_frame_count_;
-  /// Number of decoded frame of a packet.
-  int got_frame_;
-  /// Hight of frame.
-  int height_;
-  /// Width of frame.
-  int width_;
-  /// bm_handle
-  bm_handle_t handle_;
-  /// Decoded frame
-  Frame frame_;
-  /// Indicator of whether the frame is compressed.
-  bool compressed_;
-  /// Status of opening the Decoder file.
-  bool opened_;
-  /// Indicator of whether the input source is rtsp stream.
-  bool is_rtsp_;
-  /// Indicator of whether the input source is jpg image file.
-  bool is_jpeg_file_;
-  /// Flag of whether to read to end of the video.
-  bool end_of_file_;
-  int errcnt_;
+  /**
+   * @brief Release Decoder.
+   */
+  void release();
+
+  /**
+   * @brief Reconnect Decoder.
+   */
+  int reconnect();
+
+ private:
+  class Decoder_CC;
+  class Decoder_CC* const _impl;
 };
 #endif
 
@@ -704,6 +545,17 @@ class DECL_EXPORT Bmcv {
    * @return 0 for success and other for failure
    */
   int crop_and_resize(
+      bm_image                     *input,
+      bm_image                     *output,
+      int                          crop_x0,
+      int                          crop_y0,
+      int                          crop_w,
+      int                          crop_h,
+      int                          resize_w,
+      int                          resize_h,
+      int                          input_num = 1);
+
+  int crop_and_resize(
       BMImage                      &input,
       BMImage                      &output,
       int                          crop_x0,
@@ -742,6 +594,26 @@ class DECL_EXPORT Bmcv {
       int                          crop_h,
       int                          resize_w,
       int                          resize_h);
+
+  bm_image crop_and_resize_padding(
+      bm_image                     &input,
+      int                          crop_x0,
+      int                          crop_y0,
+      int                          crop_w,
+      int                          crop_h,
+      int                          resize_w,
+      int                          resize_h,
+      PaddingAtrr                  &padding_in);
+
+  BMImage crop_and_resize_padding(
+      BMImage                     &input,
+      int                          crop_x0,
+      int                          crop_y0,
+      int                          crop_w,
+      int                          crop_h,
+      int                          resize_w,
+      int                          resize_h,
+      PaddingAtrr                  &padding_in);
 
   /**
    * @brief Crop an image with given window.
@@ -833,6 +705,17 @@ class DECL_EXPORT Bmcv {
    * @return 0 for success and other for failure
    */
   int vpp_crop_and_resize(
+      bm_image                     *input,
+      bm_image                     *output,
+      int                          crop_x0,
+      int                          crop_y0,
+      int                          crop_w,
+      int                          crop_h,
+      int                          resize_w,
+      int                          resize_h,
+      int                          input_num = 1);
+
+  int vpp_crop_and_resize(
       BMImage                      &input,
       BMImage                      &output,
       int                          crop_x0,
@@ -850,6 +733,18 @@ class DECL_EXPORT Bmcv {
       int                          crop_h,
       int                          resize_w,
       int                          resize_h);
+
+  int vpp_crop_and_resize_padding(
+      bm_image                     *input,
+      bm_image                     *output,
+      int                          crop_x0,
+      int                          crop_y0,
+      int                          crop_w,
+      int                          crop_h,
+      int                          resize_w,
+      int                          resize_h,
+      PaddingAtrr                  &padding_in,
+      int                          input_num = 1);
 
   int vpp_crop_and_resize_padding(
       BMImage                      &input,
@@ -1065,6 +960,14 @@ class DECL_EXPORT Bmcv {
    * @return 0 for success and other for failure
    */
   int warp(
+      bm_image *input,
+      bm_image *output,
+      const std::pair<
+        std::tuple<float, float, float>,
+        std::tuple<float, float, float>> *matrix,
+      int input_num = 1);
+
+  int warp(
       BMImage                            &input,
       BMImage                            &output,
       const std::pair<
@@ -1102,6 +1005,15 @@ class DECL_EXPORT Bmcv {
    * @param alpha_beta   (a0, b0), (a1, b1), (a2, b2) factors
    * @return 0 for success and other for failure
    */
+  int convert_to(
+      bm_image *input,
+      bm_image *output,
+      const std::tuple<
+        std::pair<float, float>,
+        std::pair<float, float>,
+        std::pair<float, float>>   &alpha_beta,
+        int input_num = 1);
+
   int convert_to(
       BMImage                      &input,
       BMImage                      &output,
@@ -1233,6 +1145,102 @@ class DECL_EXPORT Bmcv {
       int                             thickness=1
   );
 
+  int rectangle_(
+      const bm_image                  &image,
+      int                             x0,
+      int                             y0,
+      int                             w,
+      int                             h,
+      const std::tuple<int, int, int> &color, // BGR
+      int                             thickness=1
+  );
+
+  /**
+   * @brief put text on input image
+   * 
+   * @param image     Input image
+   * @param text      Text string to be drawn
+   * @param x         Start x
+   * @param y         Start y
+   * @param color     Color of text
+   * @param fontScale Font scale factor that is multiplied by the font-specific base size
+   * @param thickness Thickness of the lines used to draw a text
+   * @return int 
+   */
+  int putText(
+      const BMImage                   &image,
+      const std::string               &text,
+      int                             x,
+      int                             y,
+      const std::tuple<int, int, int> &color, // BGR
+      float                           fontScale,
+      int                             thickness=1
+  );
+
+  int putText_(
+      const bm_image                  &image,
+      const std::string               &text,
+      int                             x,
+      int                             y,
+      const std::tuple<int, int, int> &color, // BGR
+      float                           fontScale,
+      int                             thickness=1
+  );
+
+  /** @brief output = input1 * alpha + input2 * beta + gamma
+   */
+  int image_add_weighted(
+      BMImage           &input1,
+      float             alpha,
+      BMImage           &input2,
+      float             beta,
+      float             gamma,
+      BMImage           &output
+  );
+
+  BMImage image_add_weighted(
+      BMImage           &input1,
+      float             alpha,
+      BMImage           &input2,
+      float             beta,
+      float             gamma
+  );
+
+  /**@brief Copy input image to output
+   * @param input   Input image
+   * @param output  Output image
+   * @start_x       Target starting point x
+   * @start_y       Target starting point y
+   */
+  int image_copy_to(bm_image input, bm_image output, int start_x, int start_y);
+
+  int image_copy_to(BMImage &input, BMImage &output, int start_x = 0, int start_y = 0);
+
+  template<std::size_t N>
+  int image_copy_to(BMImageArray<N> &input, BMImageArray<N> &output, int start_x = 0, int start_y = 0);
+
+  /**@brief Copy input image to output with padding
+   * @param input   Input image
+   * @param output  Output image
+   * @param start_x       Target starting point x
+   * @param start_y       Target starting point y
+   * @param padding_r     padding value of r
+   * @param padding_g     padding value of g
+   * @param padding_b     padding value of b
+   */
+  int image_copy_to_padding(bm_image input, bm_image output,
+    unsigned int padding_r, unsigned int padding_g, unsigned int padding_b,
+    int start_x, int start_y);
+
+  int image_copy_to_padding(BMImage &input, BMImage &output,
+    unsigned int padding_r, unsigned int padding_g, unsigned int padding_b,
+    int start_x = 0, int start_y = 0);
+  
+  template<std::size_t N>
+  int image_copy_to_padding(BMImageArray<N> &input, BMImageArray<N> &output, 
+    unsigned int padding_r, unsigned int padding_g, unsigned int padding_b,
+    int start_x = 0, int start_y = 0);
+
   /**
    * @brief Save the image to the specified file.
    *
@@ -1255,39 +1263,76 @@ class DECL_EXPORT Bmcv {
    */
   Handle get_handle();
 
+  /**
+   * @brief Do nms use tpu
+   * 
+   * @param input_proposal input proposal objects
+   * @param threshold      nms threshold
+   * @param proposal_size  proposal size
+   * @return result boxes [for c++, result memory should free by user]
+   */
+  nms_proposal_t* nms(face_rect_t *input_proposal,int proposal_size, float threshold);
+
+  /**
+   * @brief Applies a perspective transformation to an image.
+   * 
+   * @param input         Input image
+   * @param coordinate    coordinate of left_top, right_top, left_bottom, right_bottom 
+   * @param output_width  Output width
+   * @param output_height Output height
+   * @param format        Output format, only FORMAT_BGR_PLANAR,FORMAT_RGB_PLANAR
+   * @param dtype         Output dtype, only DATA_TYPE_EXT_1N_BYTE,DATA_TYPE_EXT_4N_BYTE
+   * @param use_bilinear  Bilinear use flag
+   * @return Output image
+   */
+
+  BMImage warp_perspective(
+    BMImage                     &input,
+    const std::tuple<
+      std::pair<int,int>,
+      std::pair<int,int>,
+      std::pair<int,int>,
+      std::pair<int,int>>       &coordinate,
+    int                         output_width,
+    int                         output_height,
+    bm_image_format_ext         format = FORMAT_BGR_PLANAR,
+    bm_image_data_format_ext    dtype = DATA_TYPE_EXT_1N_BYTE,
+    int                         use_bilinear = 0);
+
+
+#ifdef PYTHON
+  pybind11::array_t<float> nms(pybind11::array_t<float> input_proposal, float threshold);
+#endif
+
   bm_data_type_t           get_bm_data_type(bm_image_data_format_ext fmt);
   bm_image_data_format_ext get_bm_image_data_format(bm_data_type_t dtype);
 
  private:
   Handle handle_;
+
+  template<std::size_t N>
+  void check_create(BMImageArray<N>& image,int height, int width, bm_image_data_format_ext dtype, bool reset = true,
+    bm_image_format_ext fmt = FORMAT_BGR_PLANAR, int *stride = nullptr);
+  
+  void check_create(BMImage& image,int height, int width, bm_image_data_format_ext dtype, 
+    bm_image_format_ext fmt = FORMAT_BGR_PLANAR, int *stride = nullptr);
 };
+
+template<std::size_t N>
+void Bmcv::check_create(BMImageArray<N>& image, int height, int width, bm_image_data_format_ext dtype, bool reset,
+  bm_image_format_ext fmt, int *stride){
+  if (reset && image.is_created()) {
+      image.reset(height, width);
+  }
+  if(!image.is_created()){
+    image.create(handle_, height, width, fmt, dtype, stride);
+  }
+}
 
 template<std::size_t N>
 void Bmcv::bm_image_to_tensor (BMImageArray<N> &imgs, Tensor &tensor)
 {
-  if (imgs[0].image_format != FORMAT_RGB_PLANAR && imgs[0].image_format != FORMAT_BGR_PLANAR) {
-    spdlog::error("Only support image format FORMAT_BGR_PLANAR or FORMAT_RGB_PLANAR {}. Please convert it first.", imgs[0].image_format) ;
-    return;
-  }
-
-  int ret = 0;
-  bm_data_type_t dtype = get_bm_data_type(imgs[0].data_type);
-  bm_device_mem_t addr;
-  if (!imgs.check_need_free()) {
-      SPDLOG_ERROR("input BMImage doesn't have continuous memory!");
-      return;
-  }
-  ret = bm_image_get_contiguous_device_mem(imgs.size(), imgs.data(), &addr);
-  if (ret != BM_SUCCESS) {
-      spdlog::error("bm_image_to_tensor err={}", ret);
-      exit(EXIT_FAILURE);
-  }
-
-  int h = imgs[0].height;
-  int w = imgs[0].width;
-
-  tensor.reset({(int)imgs.size(), 3, h, w}, dtype);
-  tensor.reset_dev_data(addr);
+  return imgs.to_tensor(tensor);
 }
 
 template<std::size_t N>
@@ -1316,16 +1361,9 @@ void Bmcv::tensor_to_bm_image (Tensor &tensor, BMImageArray<N> &imgs, bool bgr2r
       imgs.destroy();
   }
 
-  if (!imgs.is_created()) {
-      bm_image_data_format_ext dtype = get_bm_image_data_format(tensor.dtype());
-      imgs.create(
-              handle_,
-              h,
-              w,
-              bgr2rgb ? FORMAT_RGB_PLANAR : FORMAT_BGR_PLANAR,
-              dtype
-      );
-  }
+  bm_image_data_format_ext dtype = get_bm_image_data_format(tensor.dtype());
+
+  check_create(imgs, h, w, dtype, false, bgr2rgb ? FORMAT_RGB_PLANAR : FORMAT_BGR_PLANAR);
 
   bm_device_mem_t mem = tensor.dev_data();
   bm_image_attach_contiguous_mem(imgs.size(), imgs.data(), mem);
@@ -1350,42 +1388,15 @@ int Bmcv::crop_and_resize(
   int             resize_w,
   int             resize_h
 ) {
-  bmcv_resize_t attr1;
-  attr1.start_x    = crop_x0;
-  attr1.start_y    = crop_y0;
-  attr1.in_width   = crop_w;
-  attr1.in_height  = crop_h;
-  attr1.out_width  = resize_w;
-  attr1.out_height = resize_h;
-
-  bmcv_resize_image attr0;
-  attr0.resize_img_attr = &attr1;
-  attr0.roi_num         = 1;
-  attr0.stretch_fit     = 1;
-  attr0.interpolation   = BMCV_INTER_NEAREST;
-
-  if (output.is_created()) {
-      output.reset(resize_h, resize_w);
+  check_create(output, resize_h, resize_w, input[0].data_type);
+  int ret = 0;
+  for(int i = 0; i < N; ++i) {
+    ret = crop_and_resize(&input.at(i), &output.at(i),
+          crop_x0, crop_y0, crop_w, crop_h, resize_w, resize_h);
+    if (ret != 0){
+      break;
+    }
   }
-
-  if (!output.is_created()) {
-    output.create(
-      handle_,
-      resize_h,
-      resize_w,
-      FORMAT_BGR_PLANAR,
-      input[0].data_type
-    );
-  }
-
-  int ret = bmcv_image_resize(
-    handle_.data(),
-    N,
-    &attr0,
-    input.data(),
-    output.data()
-  );
-
   return ret;
 }
 
@@ -1461,38 +1472,16 @@ int Bmcv::vpp_crop_and_resize(
   int             resize_w,
   int             resize_h
 ) {
-  bmcv_rect_t rect;
-  rect.start_x = crop_x0;
-  rect.start_y = crop_y0;
-  rect.crop_w  = crop_w;
-  rect.crop_h  = crop_h;
 
-  if (output.is_created()) {
-      output.reset(resize_h, resize_w);
-  }
-
-  if (!output.is_created()) {
-    output.create(
-      handle_,
-      resize_h,
-      resize_w,
-      FORMAT_BGR_PLANAR,
-      input[0].data_type
-    );
-  }
-
+  check_create(output, resize_h, resize_w, input[0].data_type);
   int ret = 0;
-  for (size_t i = 0; i < N; i ++) {
-    ret = bmcv_image_vpp_convert(
-      handle_.data(),
-      1,
-      input[i],
-      &output[i],
-      &rect
-    );
-    if (ret != 0) break;
+  for (int i = 0; i < N; ++i){
+    ret = vpp_crop_and_resize(&input.at(i), &output.at(i),
+          crop_x0, crop_y0, crop_w, crop_h, resize_w, resize_h);
+    if (ret != 0){
+      break;
+    }
   }
-
   return ret;
 }
 
@@ -1523,107 +1512,9 @@ int Bmcv::vpp_crop_and_resize_padding(
   int             resize_h,
   PaddingAtrr     &padding_in
 ) {
-  bmcv_rect_t rect;
-  rect.start_x = crop_x0;
-  rect.start_y = crop_y0;
-  rect.crop_w  = crop_w;
-  rect.crop_h  = crop_h;
-
-  if (output.is_created()) {
-      output.reset(resize_h, resize_w);
-  }
-
-  if (!output.is_created()) {
-    output.create(
-      handle_,
-      resize_h,
-      resize_w,
-      FORMAT_BGR_PLANAR,
-      input[0].data_type
-    );
-
-  }
-
-
-  int ret = 0;
-  for (size_t i = 0; i < N; i ++) {
-
-    // filling output
-    bmcv_padding_atrr_t padding;
-    padding.dst_crop_stx = padding_in.dst_crop_stx;
-    padding.dst_crop_sty = padding_in.dst_crop_sty;
-    padding.dst_crop_w   = padding_in.dst_crop_w;
-    padding.dst_crop_h   = padding_in.dst_crop_h;
-    padding.if_memset    = 0;
-
-    int width  = output[i].width;
-    int height = output[i].height;
-    int stride = 0;
-    bm_image_get_stride(output[i],&stride);
-
-    if (output.format(i) == FORMAT_BGR_PLANAR){
-      char color[4] = {0};
-      bm_device_mem_t mem[4];
-      bm_image_get_device_mem(output[i], mem);
-
-      color[0] = padding_in.padding_b;
-      bm_memset_device_ext(handle_.data(),(void*)color,1,mem[0]);
-
-      color[0] = padding_in.padding_g;
-      mem[0].u.device.device_addr += height*stride;
-      bm_memset_device_ext(handle_.data(),(void*)color,1,mem[0]);
-
-      color[0] = padding_in.padding_r;
-      mem[0].u.device.device_addr += height*stride;
-      bm_memset_device_ext(handle_.data(),(void*)color,1,mem[0]);
-    }else if (output.format(i) == FORMAT_BGR_PACKED){
-      char color[4] = {0};
-      color[0] = padding_in.padding_b;
-      color[1] = padding_in.padding_g;
-      color[2] = padding_in.padding_r;
-      bm_device_mem_t addr;
-      bm_image_get_device_mem(output[i], &addr);
-      bm_memset_device_ext(handle_.data(),(void*)color,3,addr);
-    }else if (output.format(i) == FORMAT_RGB_PLANAR){
-      char color[4] = {0};
-      bm_device_mem_t mem[4];
-      bm_image_get_device_mem(output[i], mem);
-
-      color[0] = padding_in.padding_r;
-      bm_memset_device_ext(handle_.data(),(void*)color,1,mem[0]);
-
-      color[0] = padding_in.padding_g;
-      mem[0].u.device.device_addr += height*stride;
-      bm_memset_device_ext(handle_.data(),(void*)color,1,mem[0]);
-
-      color[0] = padding_in.padding_b;
-      mem[0].u.device.device_addr += height*stride;
-      bm_memset_device_ext(handle_.data(),(void*)color,1,mem[0]);
-    }else if (output.format(i) == FORMAT_RGB_PACKED){
-      char color[4] = {0};
-      color[0] = padding_in.padding_r;
-      color[1] = padding_in.padding_g;
-      color[2] = padding_in.padding_b;
-      bm_device_mem_t addr;
-      bm_image_get_device_mem(output[i], &addr);
-      bm_memset_device_ext(handle_.data(),(void*)color,3,addr);
-    }else{
-      spdlog::error("Only support image format FORMAT_BGR_PLANAR or FORMAT_RGB_PLANAR or FORMAT_BGR_PACKED or FORMAT_RGB_PACKED. Please convert it first.");
-      return -1;
-    }
-
-    ret = bmcv_image_vpp_convert_padding(
-      handle_.data(),
-      1,
-      input[i],
-      &output[i],
-      &padding,
-      &rect
-    );
-    if (ret != 0) break;
-  }
-
-  return ret;
+  check_create(output, resize_h, resize_w, input[0].data_type);
+ 
+  return vpp_crop_and_resize_padding(input.data(), output.data(), crop_x0, crop_y0, crop_w, crop_h, resize_w, resize_h,padding_in,N);
 }
 
 template<std::size_t N>
@@ -1746,44 +1637,9 @@ int Bmcv::warp(
       std::tuple<float, float, float>,
       std::tuple<float, float, float>>, N> &matrix
 ) {
-  for (int i = 0; i < N; i ++) {
-    if (input[i].image_format != FORMAT_RGB_PLANAR && input[i].image_format != FORMAT_BGR_PLANAR) {
-      spdlog::error("Only support image format FORMAT_BGR_PLANAR or FORMAT_RGB_PLANAR. Please convert it first.");
-      return -1;
-    }
-  }
+  check_create(output, input[0].height, input[0].width, input[0].data_type,input[0].image_format);
 
-  bmcv_warp_image_matrix attr0[N];
-  bmcv_warp_matrix attr1[N];
-  for (int i = 0; i < N; i ++) {
-    
-    attr1[i].m[0] = std::get<0>(matrix[i].first);
-    attr1[i].m[1] = std::get<1>(matrix[i].first);
-    attr1[i].m[2] = std::get<2>(matrix[i].first);
-    attr1[i].m[3] = std::get<0>(matrix[i].second);
-    attr1[i].m[4] = std::get<1>(matrix[i].second);
-    attr1[i].m[5] = std::get<2>(matrix[i].second);
-
-    attr0[i].matrix = &attr1[i];
-    attr0[i].matrix_num = 1;
-  }
-
-  if (output.is_created()) {
-      output.reset(input[0].height, input[0].width);
-  }
-
-  if (!output.is_created()) {
-    output.create(
-      handle_,
-      input[0].height,
-      input[0].width,
-      input[0].image_format,
-      input[0].data_type
-    );
-  }
-
-  int ret = bmcv_image_warp_affine(handle_.data(), N, attr0, input.data(), output.data());
-
+  int ret = warp(input.data(), output.data(), matrix.data(), N);
   return ret;
 }
 
@@ -1809,34 +1665,9 @@ int Bmcv::convert_to(
     std::pair<float, float>,
     std::pair<float, float>> &alpha_beta
 ) {
-  bmcv_convert_to_attr attr;
-  attr.alpha_0 = std::get<0>(alpha_beta).first;
-  attr.beta_0  = std::get<0>(alpha_beta).second;
-  attr.alpha_1 = std::get<1>(alpha_beta).first;
-  attr.beta_1  = std::get<1>(alpha_beta).second;
-  attr.alpha_2 = std::get<2>(alpha_beta).first;
-  attr.beta_2  = std::get<2>(alpha_beta).second;
+  check_create(output, input[0].height, input[0].width, input[0].data_type);
 
-    if (output.is_created()) {
-        output.reset(input[0].height, input[0].width);
-    }
-
-  if (!output.is_created()) {
-    output.create(
-      handle_,
-      input[0].height,
-      input[0].width,
-      FORMAT_BGR_PLANAR, // force to this format
-      input[0].data_type
-    );
-  }
-
-  int ret = bmcv_image_convert_to(handle_.data(), N, attr, input.data(), output.data());
-    if (ret != BM_SUCCESS) {
-        printf("BMImageArrayN::bmcv_image_convert_to error, src.format=%d, dst.format=%d\n", input[0].image_format,
-                output[0].image_format);
-    }
-  return ret;
+  return convert_to(input.data(), output.data(), alpha_beta, N);
 }
 
 template<std::size_t N>
@@ -1857,16 +1688,8 @@ int Bmcv::yuv2bgr(
     BMImageArray<N> &input,
   BMImageArray<N> &output
 ) {
-  if (!output.is_created()) {
-    output.create(
-      handle_,
-      input[0].height,
-      input[0].width,
-      FORMAT_BGR_PLANAR, // force to this format
-      input[0].data_type
-    );
-  }
-
+ 
+  check_create(output, input[0].height, input[0].width, input[0].data_type, false);
   
   int ret = bmcv_image_yuv2bgr_ext(handle_.data(), N, input.data(), output.data());
 
@@ -1887,20 +1710,8 @@ int Bmcv::vpp_convert_format(
   BMImageArray<N> &input,
   BMImageArray<N> &output
 ) {
-  if (!output.is_created()) {
-    /* vpp limitation: 64-aligned */
-    //int stride = ((input.data().width + (64 - 1)) >> 6) << 6; // ceiling to 64 * N
-
-    output.create(
-      handle_,
-      input[0].height,
-      input[0].width,
-      FORMAT_BGR_PLANAR, // force to this format
-      input[0].data_type,
-      nullptr
-    );
-
-  }
+ 
+  check_create(output, input[0].height, input[0].width, input[0].data_type, false);
 
   int ret = 0;
   for (int i = 0; i < N; i ++) {
@@ -1930,16 +1741,7 @@ int Bmcv::convert_format(
   BMImageArray<N>  &input,
   BMImageArray<N>  &output
 ) {
-  if (!output.is_created()) {
-    output.create(
-      handle_,
-      input[0].height,
-      input[0].width,
-      FORMAT_BGR_PLANAR, // force to this format
-      input[0].data_type
-    );
-  }
-
+  check_create(output,input[0].height,input[0].width,input[0].data_type, false);
   int ret = bmcv_image_storage_convert(
     handle_.data(),
     N,
@@ -1959,6 +1761,39 @@ BMImageArray<N> Bmcv::convert_format(
   return std::move(output);
 }
 
+  template<std::size_t N>
+  int Bmcv::image_copy_to(BMImageArray<N> &input, BMImageArray<N> &output, int start_x, int start_y)
+  {
+    if (!output.is_created() || !input.is_created()){
+      SPDLOG_ERROR("input or output must be created before!");
+      exit(SAIL_ERR_BMCV_TRANS);
+    }
+    for(int i = 0; i < N; ++i) {
+      int ret = image_copy_to(input.at(i), output.at(i), start_x, start_y);
+      if (ret != 0){
+        exit(SAIL_ERR_BMCV_TRANS);
+      }
+    }
+    return BM_SUCCESS;
+  }
+
+  template<std::size_t N>
+  int Bmcv::image_copy_to_padding(BMImageArray<N> &input, BMImageArray<N> &output, 
+    unsigned int padding_r, unsigned int padding_g, unsigned int padding_b,
+    int start_x, int start_y)
+  {
+    if (!output.is_created() || !input.is_created()){
+      SPDLOG_ERROR("input or output must be created before!");
+      exit(SAIL_ERR_BMCV_TRANS);
+    }
+    for(int i = 0; i < N; ++i) {
+      int ret = image_copy_to_padding(input.at(i), output.at(i),padding_r, padding_g, padding_b, start_x, start_y);
+      if (ret != 0){
+        exit(SAIL_ERR_BMCV_TRANS);
+      }
+    }
+    return BM_SUCCESS;
+  }
 #endif
 
 }  // namespace sail

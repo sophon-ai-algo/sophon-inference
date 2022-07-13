@@ -153,122 +153,15 @@ class Graph {
   /**
    * @brief Forbidden copy constructor.
    */
-  Graph(const Graph &other);
+  Graph(const Graph &other) = delete;
 
   /**
    * @brief Forbidden assignment function.
    */
-  Graph& operator=(const Graph &other);
+  Graph& operator=(const Graph &other) = delete;
 
-  /**
-   * @brief Initialize graph information, such as input/output name and number
-   */
-  void init_graph_info();
-
-  /**
-   * @brief Copy all input tensors from system memory to device memory.
-   *
-   * @param input_tensors Input tensors
-   * @param bm_inputs     A pointer to bm_tensor_t array for input tensors
-   * @param input_shapes  Real shapes of input tensors
-   */
-  void input_s2d(
-    std::map<std::string, Tensor*>&          input_tensors,
-    bm_tensor_t*                             bm_inputs,
-    std::map<std::string, std::vector<int>>& input_shapes);
-
-  /**
-   * @brief Copy all output tensors from device memory to system memory.
-   *
-   * @param output_tensors output tensors
-   * @param bm_outputs     A pointer to bm_tensor_t array for output tensors
-   * @param output_shapes  Real shapes of output tensors
-   */
-  void output_d2s(
-    std::map<std::string, Tensor*>&          output_tensors,
-    bm_tensor_t*                             bm_outputs,
-    std::map<std::string, std::vector<int>>& output_shapes);
-
-  /**
-   * @brief Map tensors to bm_tensors.
-   *
-   * @param input        A map contains Tensor instances of input
-   * @param output       A map contains Tensor instances of output
-   * @param bm_in        A pointer to bm_tensor_t array for input tensors
-   * @param bm_out       A pointer to bm_tensor_t array for output tensors
-   */
-  void map_tensors(
-      std::map<std::string, Tensor*>&          input,
-      std::map<std::string, Tensor*>&          output,
-      bm_tensor_t*                             bm_in,
-      bm_tensor_t*                             bm_out);
-
-  void map_input_tensors(
-            std::map<std::string, Tensor*>&          input,
-            bm_tensor_t*                             bm_in);
-
-  void map_output_tensors(
-            std::map<std::string, Tensor*>&          output,
-            bm_tensor_t*                             bm_out);
-
-  void dump_io_tensors(const std::string& name, bm_tensor_t *ins, int in_num, bm_tensor_t *outs, int out_num);
-  /**
-   * @brief Map real input shapes to bm_tensors.
-   *
-   * @param input_shapes Real shapes of input tensors
-   * @param bm_in        A pointer to bm_tensor_t array for input tensors
-   */
-  void map_input_shapes(
-      std::map<std::string, std::vector<int>>& input_shapes,
-      bm_tensor_t*                             bm_inputs);
-
-  /// Graph name
-  std::string name_;
-
-  /// Indicator of where to store input and output tensors.
-  /// SYSI: Input tensors are in system memory while output tensors are
-  ///       in device memory.
-  /// SYSO: Input tensors are in device memory while output tensors are
-  ///       in system memory.
-  /// SYSIO: Both input and output tensors are in system memory.
-  /// DEVIO: Both input and output tensors are in device memory.
-  IOMode io_mode_;
-
-  /// bm_handle.
-  bm_handle_t handle_;
-
-  /// Pointer to bmruntime.
-  void* p_bmrt_;
-
-  /// Data type of input tensors
-  std::map<std::string, bm_data_type_t>* input_dtypes_;
-
-  /// Data type of output tensors
-  std::map<std::string, bm_data_type_t>* output_dtypes_;
-
-  /// Map of input tensor names and indexes
-  std::map<std::string, size_t> input_map_;
-
-  /// Map of output tensor names and indexes
-  std::map<std::string, size_t> output_map_;
-
-  /// Pointers to all input tensors needed by bmrt_launch
-  bm_tensor_t* inputs_;
-
-  /// Pointers to all output tensors needed by bmrt_launch
-  bm_tensor_t* outputs_;
-
-  /// Pointers to all input tensors
-  std::map<std::string, Tensor*> input_tensors_;
-
-  /// Pointers to all output tensors
-  std::map<std::string, Tensor*> output_tensors_;
-
-  /// Shapes of all input tensors
-  std::map<std::string, std::vector<int>>* input_shapes_;
-
-  /// Shapes of all output tensors
-  std::map<std::string, std::vector<int>>* output_shapes_;
+  class Graph_CC;
+  class Graph_CC* const _impl;
 };
 
 }  // namespace sail

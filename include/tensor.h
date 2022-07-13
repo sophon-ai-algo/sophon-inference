@@ -57,7 +57,32 @@ typedef enum sail_status_t {
  *
  * @return Number of available TPUs.
  */
-int get_available_tpu_num();
+int DECL_EXPORT get_available_tpu_num();
+
+/**
+ * @brief Get current time of system.
+ *
+ * @return current time.
+ */
+double DECL_EXPORT get_current_time_us();
+
+#ifdef _WIN32
+    int DECL_EXPORT setenv(const char* name, const char* value, int overwrite);
+#endif
+
+int DECL_EXPORT set_print_flag(bool print_flag);
+
+int DECL_EXPORT set_dump_io_flag(bool dump_io_flag);
+
+void DECL_EXPORT get_sail_version(char* sail_version);
+
+bool DECL_EXPORT get_print_flag();
+
+#define PRINT_function_Time_ms(func_name, start_time, end_time) printf("Function[%s]-[%s] time use: %.4f ms \n",__FUNCTION__,func_name, abs(end_time-start_time)/1000.0);
+
+#define PRINT_TIME_MS(func_name, start_time) if(get_print_flag()){ \
+          PRINT_function_Time_ms(func_name, start_time, get_current_time_us());}
+
 
 class DECL_EXPORT Handle {
  public:
@@ -67,6 +92,8 @@ class DECL_EXPORT Handle {
   explicit Handle();
 
   /**
+   * This Function is not recommended, will be removed in future 
+   *
    * @brief Constructor using existed bm_handle_t.
    *
    * @param handle A bm_handle_t
@@ -114,16 +141,27 @@ class DECL_EXPORT Handle {
    */
   int get_device_id();
 
- private:
   /**
-   * @brief Free inner bm_handle_t.
+   * @brief Get serial number
+   * 
+   * @return serial number
    */
-  void free();
 
-  bool own_handle_;
-  bool allocated_;
-  bm_handle_t handle_;
-  int dev_id_;
+  std::string get_sn();
+
+ private:
+  //   /**
+  //  * @brief Forbidden copy constructor.
+  //  */
+  // Handle(const Handle& other) = delete;
+
+  // /**
+  //  * @brief Forbidden assignment function.
+  //  */
+  // Handle& operator=(const Handle& other) = delete;
+
+  class Handle_CC;
+  class Handle_CC* const _impl;
 };
 
 /**
@@ -256,55 +294,15 @@ class DECL_EXPORT Tensor {
    * @param handle Handle instance
    * @param data   Ndarray data
    */
-  template <typename T>
-  explicit Tensor(
-      Handle                handle,
-      pybind11::array_t<T>& data)
-      : handle_(handle), dtype_(BM_FLOAT32), own_sys_data_(true),
-        own_dev_data_(true), sys_data_(nullptr), dev_data_({}) {
+    explicit Tensor(Handle handle, pybind11::array_t<float>&   data);
+    explicit Tensor(Handle handle, pybind11::array_t<int8_t>&  data);
+    explicit Tensor(Handle handle, pybind11::array_t<uint8_t>& data);
+    explicit Tensor(Handle handle, pybind11::array_t<int32_t>& data);
 
-    pybind11::buffer_info buf = data.request();
-    if (buf.ndim < 1) {
-      spdlog::error("Invalid tensor shape!");
-      exit(SAIL_ERR_TENSOR_INIT);
-    }
-    if (std::is_same<T, float>::value) {
-      dtype_ = BM_FLOAT32;
-    } else if (std::is_same<T, int8_t>::value) {
-      dtype_ = BM_INT8;
-    } else if (std::is_same<T, uint8_t>::value) {
-      dtype_ = BM_UINT8;
-    } else if (std::is_same<T, int32_t>::value) {
-      dtype_ = BM_INT32;
-    }
-    shape_.clear();
-    for (auto it : buf.shape) {
-      shape_.push_back(static_cast<int>(it));
-    }
-    // alloc dev_mem
-    int data_size = std::accumulate(shape_.begin(), shape_.end(),
-                    sizeof(T), std::multiplies<int>());
-    if (own_sys_data_) {
-#ifndef IS_SOC_MODE
-        sys_data_ = new uint8_t[data_size];
-#else
-        bm_mem_mmap_device_mem(handle_.data(), &dev_data_, (unsigned long long*)&sys_data_);
-        own_sys_data_is_mmap_ = true;
-#endif
-
-    }
-
-    if (own_dev_data_) {
-        int ret = bm_malloc_device_byte_heap_mask(handle_.data(), &dev_data_, 7, data_size);
-        if (BM_SUCCESS != ret) {
-            SPDLOG_ERROR("bm_malloc_device_byte_heap_mask() err={}", ret);
-            exit(SAIL_ERR_BMCV_INIT);
-        }
-    }
-
-    memcpy(sys_data_, buf.ptr, data_size);
-  }
-
+    explicit Tensor(Handle handle, pybind11::array_t<float>&   data, bool own_sys_data);
+    explicit Tensor(Handle handle, pybind11::array_t<int8_t>&  data, bool own_sys_data);
+    explicit Tensor(Handle handle, pybind11::array_t<uint8_t>& data, bool own_sys_data);
+    explicit Tensor(Handle handle, pybind11::array_t<int32_t>& data, bool own_sys_data);
   /**
    * @brief Get ndarray in system memory of the tensor.
    *
@@ -363,48 +361,7 @@ class DECL_EXPORT Tensor {
    */
   template <typename T>
   void update_data(pybind11::array_t<T>& data) {
-    pybind11::buffer_info buf = data.request();
-    if (buf.ndim < 1) {
-      spdlog::error("Invalid tensor shape!");
-      exit(SAIL_ERR_TENSOR_INNER);
-    }
-    std::vector<int> shape;
-    for (auto it : buf.shape) {
-      shape.push_back(static_cast<int>(it));
-    }
-    size_t type_size = 1;
-    if (dtype_ == BM_FLOAT32) {
-      type_size = sizeof(float);
-    } else if (dtype_ == BM_INT8) {
-      type_size = sizeof(int8_t);
-    } else if (dtype_ == BM_UINT8) {
-      type_size = sizeof(uint8_t);
-    } else if (dtype_ == BM_INT32) {
-      type_size = sizeof(int32_t);
-    }else{
-        spdlog::error("not suport dtype={}!", dtype_);
-        exit(SAIL_ERR_TENSOR_INNER);
-    }
-
-    int old_size = std::accumulate(shape_.begin(), shape_.end(),
-  		 type_size, std::multiplies<int>());
-    int new_size = std::accumulate(shape.begin(), shape.end(),
-  		 sizeof(T), std::multiplies<int>());
-    if (new_size > old_size) {
-      spdlog::error("Data size exceeds tensor size!");
-      exit(SAIL_ERR_TENSOR_INNER);
-    }
-#ifndef IS_SOC_MODE
-//    if (own_sys_data_) {
-//      std::free(sys_data_);
-//      own_sys_data_ = false;
-//    }
-//    sys_data_ = buf.ptr;
-    memcpy(sys_data_, buf.ptr, new_size);
-
-#else
-    memcpy(sys_data_, buf.ptr, new_size);
-#endif
+    return update_data(data.request(),sizeof(T));
   }
 #endif
 
@@ -533,37 +490,13 @@ class DECL_EXPORT Tensor {
   void free();
 
  private:
-  /**
-   * @brief Judge if a tensor shape is valid.
-   *
-   * @param shape Shape of a tensor
-   * @return True for valid and flase for invalid..
-   */
-  bool shape_is_valid(const std::vector<int>& shape);
 
-  /// Handle instance.
-  Handle handle_;
+  class Tensor_CC;
+  class Tensor_CC* const _impl;
 
-  /// Data type
-  bm_data_type_t dtype_;
-
-  /// Shape of the tensor.
-  std::vector<int> shape_;
-
-  /// Indicator of whether own the data pointer in system memory.
-  bool own_sys_data_{false};
-  bool own_sys_data_is_mmap_{false};
-
-  /// Indicator of whether own the device memory struct.
-  bool own_dev_data_{false};
-
-  /// Data pointer in system memory of the tensor.
-  void* sys_data_{nullptr};
-
-  /// Instance of device memory structure.
-  bm_device_mem_t dev_data_ {};
-  /// data size
-  uint32_t data_size_ {0};
+#ifdef PYTHON
+  void update_data(const pybind11::buffer_info& buf, int type_size);
+#endif
 };
 
 }  // namespace sail
