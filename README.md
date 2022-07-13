@@ -20,15 +20,15 @@ Guide to deploying deep-learning inference networks and deep vision primitives o
 ```
 ## Prerequisites and Compilation
 
-- **BMNNSDK2**                        Required
+- **SophonSDK3**                        Required
 - **CMake**                           Required
 - **OpenCV3(at least 3.4.6)**         Required for C++ samples
 - **Python3**                         Optional for python samples
 - **Sphinx**                          Optional for documents
 
 ```shell
-# install bmnnsdk2
-cd bmnnsdk2/scripts
+# install sophonsdk3
+cd sophonsdk3/scripts
 # extract libs adaptable to the OS
 ./install_lib.sh nntc
 # remove old driver and install the new one, 'pcie' for x86_64 and 'arm_pcie' for aarch64
