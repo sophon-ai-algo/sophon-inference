@@ -1235,6 +1235,16 @@ namespace sail {
         return *this;
     }
 
+    int BMImage::get_device_id() const {
+        bm_handle_t handle_temp = bm_image_get_handle(&_impl->img_);
+        if(handle_temp){
+            return bm_get_devid(handle_temp);
+        }else{
+            SPDLOG_INFO("BMImage is empty, Not in any device!");
+            return -1;
+        }
+    }
+
     BMImage::~BMImage() {
         destroy();
         delete _impl;
@@ -1606,6 +1616,20 @@ namespace sail {
         tensor.reset_dev_data(addr);
     }
 
+    template<std::size_t N>
+    int BMImageArray<N>::get_device_id(){
+        if(N <= 0){
+            SPDLOG_ERROR("The size of the array must be greater than zero.");
+            return -1;
+        }
+        bm_handle_t handle_temp = bm_image_get_handle(&this->at(0));
+        if(handle_temp){
+            return bm_get_devid(handle_temp);
+        }else{
+            SPDLOG_INFO("BMImage is empty, Not in any device!");
+            return -1;
+        }
+    }
 
     Bmcv::Bmcv(Handle &handle) : handle_(handle) {}
 

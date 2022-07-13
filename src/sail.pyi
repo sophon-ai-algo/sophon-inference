@@ -135,6 +135,8 @@ class BMImage:
 
     def empty_check(self) -> int: pass
 
+    def get_device_id(self) -> int: pass
+
 
 class Decoder:
     def __init__(self, file_path: str, compressed: bool =  True, 
@@ -280,6 +282,17 @@ class Tensor:
         pass
     
     def pysys_data(self) ->  numpy.ndarray[Any, numpy.dtype[numpy.int32]] :   pass
+
+    def memory_set(self, c: int) -> None : 
+        """
+        Fill memory with a comstant byte
+
+        Parameters:
+        ----------
+        c: int
+            fills memory with the constant byte c
+        """
+        pass
 
 class Engine:
     def __init__(self, dev_id: int) : pass
@@ -860,6 +873,8 @@ class BMImageArray():
             Input image.
         """
         pass
+
+    def get_device_id(self) -> int: pass
 
 
 class BMImageArray2D(BMImageArray): pass

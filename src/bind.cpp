@@ -110,7 +110,8 @@ static void declareBMImageArray(py::module &m) {
     .def("set_need_free", (void (BMImageArray<N>::*) (bool))   &BMImageArray<N>::set_need_free)
     .def("create", (void (BMImageArray<N>::*)(Handle&, int, int, bm_image_format_ext, bm_image_data_format_ext)) &BMImageArray<N>::create)
     .def("copy_from",        &BMImageArray<N>::copy_from)
-    .def("attach_from",      &BMImageArray<N>::attach_from);
+    .def("attach_from",      &BMImageArray<N>::attach_from)
+    .def("get_device_id",    &BMImageArray<N>::get_device_id);
 }
 
 template<std::size_t N>
@@ -207,7 +208,8 @@ PYBIND11_MODULE(sail, m) {
     .def("sync_s2d",              (void (Tensor::*)()) &Tensor::sync_s2d, "move all data from system to device")
     .def("sync_s2d",              (void (Tensor::*)(int)) &Tensor::sync_s2d, "move size data from system to device")
     .def("sync_d2s",              (void (Tensor::*)()) &Tensor::sync_d2s, "move all data from device to system")
-    .def("sync_d2s",              (void (Tensor::*)(int)) &Tensor::sync_d2s, "move size data from device to system");
+    .def("sync_d2s",              (void (Tensor::*)(int)) &Tensor::sync_d2s, "move size data from device to system")
+    .def("memory_set",            &Tensor::memory_set);
 
   py::class_<Engine>(m, "Engine")
     .def(py::init<int>())
@@ -305,7 +307,8 @@ PYBIND11_MODULE(sail, m) {
     .def("data",                 (bm_image (BMImage::*)() const)      &BMImage::data )
     .def("get_plane_num",        (int (BMImage::*)() const)           &BMImage::get_plane_num)
     .def("need_to_free",         (bool (BMImage::*)() const)          &BMImage::need_to_free)
-    .def("empty_check",          (int (BMImage::*)() const)           &BMImage::empty_check);
+    .def("empty_check",          (int (BMImage::*)() const)           &BMImage::empty_check)
+    .def("get_device_id",        (int (BMImage::*)() const)           &BMImage::get_device_id);
     
   declareBMImageArray<2>(m); // BMImageArray2D
   declareBMImageArray<3>(m); // BMImageArray3D

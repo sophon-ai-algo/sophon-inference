@@ -344,7 +344,10 @@ namespace sail {
                 if (BM_SUCCESS != ret) {
                     SPDLOG_ERROR("bm_malloc_device_type() err={}, size={}", ret, data_size_);
                 }
-                ret = bm_memset_device(handle_.data(), 0, dev_data_);
+
+                int c = 0;
+                void* value = (void*)&c;
+                ret = bm_memset_device_ext(handle_.data(), value, 1, dev_data_);
                 if (BM_SUCCESS != ret) {
                     SPDLOG_ERROR("bm_memset_device failed, return={}", ret);
                 }
@@ -1149,6 +1152,17 @@ namespace sail {
         int size = std::accumulate(_impl->shape_.begin(), _impl->shape_.end(),
                                    1, std::multiplies<int>());
         scale_to(dst, scale, size);
+    }
+
+    void Tensor::memory_set(int c)
+    {
+        if(_impl->sys_data_){
+            memset(_impl->sys_data_,c,_impl->data_size_);
+        }
+        if(_impl->dev_data_.u.device.device_addr != 0){
+            void* value = (void*)&c;
+            bm_memset_device_ext(_impl->handle_.data(), value, 1, _impl->dev_data_);
+        }
     }
 
 #ifdef PYTHON

@@ -287,6 +287,13 @@ class DECL_EXPORT Tensor {
    */
   void scale_to(float* dst, float scale, int size);
 
+  /**
+   * @brief Fill memory with a comstant byte
+   * 
+   * @param c constant byte
+   */
+  void memory_set(int c);
+
 #ifdef PYTHON
   /**
    * @brief Constructor allocates device memory of the tensor(py).

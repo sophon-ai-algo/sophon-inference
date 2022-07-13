@@ -213,6 +213,13 @@ class DECL_EXPORT BMImage {
    */
   bm_image_data_format_ext dtype() const;
 
+  /**
+   * @brief Get device id of this image.
+   *
+   * @return Device id.
+   */
+  int get_device_id() const;
+
   bool need_to_free() const;
   int empty_check() const;
   int get_plane_num() const;
@@ -279,6 +286,13 @@ class BMImageArray : public std::array<bm_image, N> {
             bm_image_data_format_ext dtype);
 
   void to_tensor(Tensor &tensor);
+
+  /**
+   * @brief Get device id of this image array.
+   *
+   * @return Device id.
+   */
+  int get_device_id();
 
  private:
   BMImageArray(const BMImageArray&) = delete;
