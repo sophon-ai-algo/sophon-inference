@@ -1317,6 +1317,25 @@ class DECL_EXPORT Bmcv {
     bm_image_data_format_ext    dtype = DATA_TYPE_EXT_1N_BYTE,
     int                         use_bilinear = 0);
 
+  /**
+   * @brief Draw point.
+   * 
+   * @param image         Input image
+   * @param center        Center of point
+   * @param color         Color of point
+   * @param radius        Radius of point
+   */
+  int drawPoint(
+    const BMImage &image,
+    std::pair<int,int> center,
+    std::tuple<unsigned char, unsigned char, unsigned char> color,   // BGR
+    int radius);
+
+  int drawPoint_(
+    const bm_image  &image,
+    std::pair<int,int> center,
+    std::tuple<unsigned char, unsigned char, unsigned char> color,  // BGR
+    int radius);
 
 #ifdef PYTHON
   pybind11::array_t<float> nms(pybind11::array_t<float> input_proposal, float threshold);

@@ -374,7 +374,9 @@ PYBIND11_MODULE(sail, m) {
       py::arg("input"),py::arg("output"), py::arg("start_x")=0, py::arg("start_y")=0)
     .def("image_copy_to_padding",       (int     (Bmcv::*)(BMImage&, BMImage&, unsigned int, unsigned int, unsigned int, int, int))  &Bmcv::image_copy_to_padding,
       py::arg("input"),py::arg("output"), py::arg("padding_r"), py::arg("padding_g"), py::arg("padding_b"),py::arg("start_x")=0, py::arg("start_y")=0)
-    .def("nms",  (pybind11::array_t<float> (Bmcv::*)(pybind11::array_t<float>, float)) &Bmcv::nms);
+    .def("nms",  (pybind11::array_t<float> (Bmcv::*)(pybind11::array_t<float>, float)) &Bmcv::nms)
+    .def("drawPoint",           &Bmcv::drawPoint)
+    .def("drawPoint_",          &Bmcv::drawPoint_);
 
   registerBMImageArrayFunctions<2>(cls);
   registerBMImageArrayFunctions<3>(cls);

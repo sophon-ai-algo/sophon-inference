@@ -3093,6 +3093,134 @@ namespace sail {
         }
         return output_image;
     }
+
+    int Bmcv::drawPoint(
+        const BMImage &image,
+        std::pair<int,int> center,
+        std::tuple<unsigned char, unsigned char, unsigned char> color,
+        int radius){
+        if(image.format() != FORMAT_GRAY &&
+            image.format() != FORMAT_YUV420P &&
+            image.format() != FORMAT_YUV422P &&
+            image.format() != FORMAT_NV12 &&
+            image.format() != FORMAT_NV21 &&
+            image.format() != FORMAT_NV16 &&
+            image.format() != FORMAT_NV61){
+            SPDLOG_ERROR("input format not supported!");
+            print_image(image.data(),"input");
+            return BM_ERR_FAILURE;
+        }
+        if(center.first >= image.width() || center.second >= image.height()
+            || center.first < 0 || center.second < 0){
+            SPDLOG_ERROR("drawPoint failed, point is outside, center({},{}) vs. image width:{}, image height:{}",
+                center.first, center.second, image.width(), image.height());
+            return BM_ERR_FAILURE;
+        }
+       
+        bmcv_point_t org_center = {center.first, center.second};
+        bmcv_point_t point_start[2];
+        bmcv_point_t point_end[2];
+        point_start[0].x = center.first - radius;
+        point_start[0].y = center.second;
+        point_start[0].x = point_start[0].x > 0 ? point_start[0].x : 0;
+
+        point_end[0].x = center.first + radius;
+        point_end[0].y = center.second;
+        point_end[0].x = point_end[0].x < image.width() - 1 ? point_end[0].x : image.width() - 1;
+
+        point_start[1].x = center.first ;
+        point_start[1].y = center.second - radius;
+        point_start[1].y = point_start[1].y > 0 ? point_start[1].y : 0;
+
+        point_end[1].x = center.first;
+        point_end[1].y = center.second + radius; 
+        point_end[1].y = point_end[1].y < image.height() - 1 ? point_end[1].y : image.height() - 1;
+
+        bmcv_color_t color_put = {std::get<2>(color), std::get<1>(color), std::get<0>(color)};
+
+        int thickness = radius / 2 + 1; 
+
+        int ret = bmcv_image_draw_lines(
+            handle_.data(),
+            image.data(),
+            point_start,
+            point_end,
+            2,
+            color_put,
+            thickness);
+
+         if (BM_SUCCESS != ret) {
+            print_image(image.data(),"input");
+            SPDLOG_ERROR("bmcv_image_draw_lines() err={}", ret);
+            return ret;
+        }
+        return BM_SUCCESS;
+    }
+
+    int Bmcv::drawPoint_(
+        const bm_image  &image,
+        std::pair<int,int> center,
+        std::tuple<unsigned char, unsigned char, unsigned char> color,
+        int radius){
+
+        if(image.image_format != FORMAT_GRAY &&
+            image.image_format != FORMAT_YUV420P &&
+            image.image_format != FORMAT_YUV422P &&
+            image.image_format != FORMAT_NV12 &&
+            image.image_format != FORMAT_NV21 &&
+            image.image_format != FORMAT_NV16 &&
+            image.image_format != FORMAT_NV61){
+            SPDLOG_ERROR("input format not supported!");
+            print_image(image,"input");
+            return BM_ERR_FAILURE;
+        }
+        if(center.first >= image.width || center.second >= image.height
+            || center.first < 0 || center.second < 0){
+            SPDLOG_ERROR("drawPoint failed, point is outside, center({},{}) vs. image width:{}, image height:{}",
+                center.first, center.second, image.width, image.height);
+            return BM_ERR_FAILURE;
+        }
+       
+        bmcv_point_t org_center = {center.first, center.second};
+        bmcv_point_t point_start[2];
+        bmcv_point_t point_end[2];
+        point_start[0].x = center.first - radius;
+        point_start[0].y = center.second;
+        point_start[0].x = point_start[0].x > 0 ? point_start[0].x : 0;
+
+        point_end[0].x = center.first + radius;
+        point_end[0].y = center.second;
+        point_end[0].x = point_end[0].x < image.width - 1 ? point_end[0].x : image.width - 1;
+
+        point_start[1].x = center.first ;
+        point_start[1].y = center.second - radius;
+        point_start[1].y = point_start[1].y > 0 ? point_start[1].y : 0;
+
+        point_end[1].x = center.first;
+        point_end[1].y = center.second + radius; 
+        point_end[1].y = point_end[1].y < image.height - 1 ? point_end[1].y : image.height - 1;
+
+        bmcv_color_t color_put = {std::get<2>(color), std::get<1>(color), std::get<0>(color)};
+
+        int thickness = radius / 2 + 1; 
+
+        int ret = bmcv_image_draw_lines(
+            handle_.data(),
+            image,
+            point_start,
+            point_end,
+            2,
+            color_put,
+            thickness);
+
+         if (BM_SUCCESS != ret) {
+            print_image(image,"input");
+            SPDLOG_ERROR("bmcv_image_draw_lines() err={}", ret);
+            return ret;
+        }
+        return BM_SUCCESS;
+    }
+
 #ifdef PYTHON
     pybind11::array_t<float> Bmcv::nms(pybind11::array_t<float> input_proposal, float threshold)
     {

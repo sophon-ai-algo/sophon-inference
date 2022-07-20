@@ -828,6 +828,32 @@ class Bmcv:
         """
         pass
 
+    def drawPoint(self, image: BMImage, center: Tuple[int, int], color: Tuple[int, int, int], radius: int) -> int:
+        """
+        Draw Point on input image.
+
+        Parameters:
+        ----------
+        image: BMImage, Input image
+        center: Tuple[int, int], center of point, (point_x, point_y)
+        color: Tuple[int, int, int], color of drawn, (b,g,r)
+        radius: Radius of drawn
+        """
+        pass
+
+    def drawPoint_(self, image: bm_image, center: Tuple[int, int], color: Tuple[int, int, int], radius: int) -> int:
+            """
+        Draw Point on input image.
+
+        Parameters:
+        ----------
+        image: bm_image, Input image
+        center: Tuple[int, int], center of point, (point_x, point_y)
+        color: Tuple[int, int, int], color of drawn, (b,g,r)
+        radius: Radius of drawn
+        """
+        pass
+
 class BMImageArray():
     def __init__(self) -> None: ...
 
