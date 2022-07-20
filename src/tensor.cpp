@@ -129,7 +129,7 @@ namespace sail {
         sscanf(__DATE__, "%s %d %d", s_month, &day, &year);
         month = (strstr(month_names, s_month)-month_names)/3;
         sscanf(__TIME__, "%d:%d:%d", &hour, &minute, &second);
-        sprintf(sail_version,"2.7.0(%d%02d%02d_%02d%02d%02d)",year,month+1,day,hour, minute, second);
+        sprintf(sail_version,"master(%d%02d%02d_%02d%02d%02d)",year,month+1,day,hour, minute, second);
     }
 
     class Handle::Handle_CC{
