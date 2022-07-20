@@ -129,7 +129,7 @@ namespace sail {
         sscanf(__DATE__, "%s %d %d", s_month, &day, &year);
         month = (strstr(month_names, s_month)-month_names)/3;
         sscanf(__TIME__, "%d:%d:%d", &hour, &minute, &second);
-        sprintf(sail_version,"2.7.0(%d%02d%02d_%02d%02d%02d)",year,month+1,day,hour, minute, second);
+        sprintf(sail_version,"3.0.0(%d%02d%02d_%02d%02d%02d)",year,month+1,day,hour, minute, second);
     }
 
     class Handle::Handle_CC{
@@ -689,28 +689,31 @@ namespace sail {
 
         void* numpy_ptr = buf.ptr;
 
-        if (!pybind11::detail::check_flags(buf.ptr, pybind11::detail::npy_api::NPY_ARRAY_C_CONTIGUOUS_)) {
-            pybind11::module np = pybind11::module::import("numpy");  // like 'import numpy as np'
-            if(BM_FLOAT32 == dtype){
-                pybind11::array_t<float> buf_temp(buf);
-                pybind11::array_t<float> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }else if(BM_INT8 == dtype){
-                pybind11::array_t<int8_t> buf_temp(buf);
-                pybind11::array_t<int8_t> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }else if(BM_UINT8 == dtype){
-                pybind11::array_t<uint8_t> buf_temp(buf);
-                pybind11::array_t<uint8_t> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }else if(BM_INT32 == dtype){
-                pybind11::array_t<int32_t> buf_temp(buf);
-                pybind11::array_t<int32_t> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }else{
-                SPDLOG_ERROR("Input Data Type not supported: {}",dtype);
-                exit(SAIL_ERR_TENSOR_INIT);
-            }
+        pybind11::array_t<float> arr_float;
+        pybind11::array_t<int8_t> arr_int8_t;
+        pybind11::array_t<uint8_t> arr_uint8_t;
+        pybind11::array_t<int32_t> arr_int32_t;
+
+        pybind11::module np = pybind11::module::import("numpy");  // like 'import numpy as np'
+        if(BM_FLOAT32 == dtype){
+            pybind11::array_t<float> buf_temp(buf);
+            arr_float = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_float.request().ptr;
+        }else if(BM_INT8 == dtype){
+            pybind11::array_t<int8_t> buf_temp(buf);
+            arr_int8_t = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_int8_t.request().ptr;
+        }else if(BM_UINT8 == dtype){
+            pybind11::array_t<uint8_t> buf_temp(buf);
+            arr_uint8_t = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_uint8_t.request().ptr;
+        }else if(BM_INT32 == dtype){
+            pybind11::array_t<int32_t> buf_temp(buf);
+            arr_int32_t = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_int32_t.request().ptr;
+        }else{
+            SPDLOG_ERROR("Input Data Type not supported: {}",dtype);
+            exit(SAIL_ERR_TENSOR_INIT);
         }
 
         // alloc dev_mem
@@ -795,25 +798,27 @@ namespace sail {
 
         void* numpy_ptr = buf.ptr;
 
-        if (!pybind11::detail::check_flags(buf.ptr, pybind11::detail::npy_api::NPY_ARRAY_C_CONTIGUOUS_)) {
-            pybind11::module np = pybind11::module::import("numpy");  // like 'import numpy as np'
-            if(BM_FLOAT32 == dtype_){
-                pybind11::array_t<float> buf_temp(buf);
-                pybind11::array_t<float> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }else if(BM_INT8 == dtype_){
-                pybind11::array_t<int8_t> buf_temp(buf);
-                pybind11::array_t<int8_t> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }else if(BM_UINT8 == dtype_){
-                pybind11::array_t<uint8_t> buf_temp(buf);
-                pybind11::array_t<uint8_t> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }else if(BM_INT32 == dtype_){
-                pybind11::array_t<int32_t> buf_temp(buf);
-                pybind11::array_t<int32_t> arr_c = np.attr("ascontiguousarray")(buf_temp);
-                numpy_ptr = arr_c.request().ptr;
-            }
+        pybind11::array_t<float> arr_float;
+        pybind11::array_t<int8_t> arr_int8_t;
+        pybind11::array_t<uint8_t> arr_uint8_t;
+        pybind11::array_t<int32_t> arr_int32_t;
+        pybind11::module np = pybind11::module::import("numpy");  // like 'import numpy as np'
+        if(BM_FLOAT32 == dtype_){
+            pybind11::array_t<float> buf_temp(buf);
+            arr_float = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_float.request().ptr;
+        }else if(BM_INT8 == dtype_){
+            pybind11::array_t<int8_t> buf_temp(buf);
+            arr_int8_t = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_int8_t.request().ptr;
+        }else if(BM_UINT8 == dtype_){
+            pybind11::array_t<uint8_t> buf_temp(buf);
+            arr_uint8_t = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_uint8_t.request().ptr;
+        }else if(BM_INT32 == dtype_){
+            pybind11::array_t<int32_t> buf_temp(buf);
+            arr_int32_t = np.attr("ascontiguousarray")(buf_temp);
+            numpy_ptr = arr_int32_t.request().ptr;
         }
 
         if (own_sys_data_){
