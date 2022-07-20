@@ -344,7 +344,10 @@ namespace sail {
                 if (BM_SUCCESS != ret) {
                     SPDLOG_ERROR("bm_malloc_device_type() err={}, size={}", ret, data_size_);
                 }
-                ret = bm_memset_device(handle_.data(), 0, dev_data_);
+                
+                int c = 0;
+                void* value = (void*)&c;
+                ret = bm_memset_device_ext(handle_.data(), value, 1, dev_data_);
                 if (BM_SUCCESS != ret) {
                     SPDLOG_ERROR("bm_memset_device failed, return={}", ret);
                 }
