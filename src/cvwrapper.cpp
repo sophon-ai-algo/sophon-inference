@@ -411,6 +411,10 @@ namespace sail {
                 get_decoder_env_string("analyzeduration", analyzeduration); //100
                 return 0;
             }
+        
+#ifdef USE_OPENCV
+          cv::Mat m1;
+#endif
     };
 
     Decoder::Decoder_CC::Decoder_CC(
@@ -596,13 +600,16 @@ namespace sail {
               "bmcv_image_jpeg_dec err={}, fallback to software decode ...\n",
               ret);
           std::vector<char> pic(buffer, buffer+size);
-          cv::Mat m1;
-          m1.allocator = cv::hal::getAllocator();
+        //   cv::Mat m1;
+        //   m1.allocator = cv::hal::getAllocator();
           cv::imdecode(pic, cv::IMREAD_COLOR, &m1, handle.get_device_id());
           memset(&image, 0, sizeof(image));
           ret = cv::bmcv::toBMI(m1, &image);
           if (ret != BM_SUCCESS) {
             spdlog::error("cv::bmcv::toBMI() err {},{}", __FILE__, __LINE__);
+            ret = BM_NOT_SUPPORTED;
+          }else {
+            ret = BM_SUCCESS;
           }
 #else
           ret = BM_NOT_SUPPORTED;
