@@ -1087,6 +1087,51 @@ namespace sail {
 
         ~BMImage_CC(){};
 
+#if defined(USE_BMCV) && defined(USE_OPENCV) && defined(PYTHON)
+    pybind11::array_t<uint8_t> cvmat_to_numpy(cv::Mat cv_mat){
+        std::vector<pybind11::ssize_t> shape;
+
+        pybind11::ssize_t item_size = 1;
+        std::string format;
+        if (cv_mat.type()  == CV_8UC3) {
+            shape.push_back(cv_mat.rows);
+            shape.push_back(cv_mat.cols);
+            shape.push_back(3);
+            item_size = sizeof(uint8_t);
+            format = pybind11::format_descriptor<uint8_t>::format();
+        } else if(cv_mat.type()  == CV_8UC1){
+            shape.push_back(cv_mat.rows);
+            shape.push_back(cv_mat.cols);
+            item_size = sizeof(uint8_t);
+            format = pybind11::format_descriptor<uint8_t>::format();
+        }else{
+            SPDLOG_ERROR("Mat type not support: {}",cv_mat.type());
+            exit(1);
+        }
+        
+        int stride_temp = FFALIGN(cv_mat.cols * 3 * item_size, SAIL_ALIGN); // ceiling to 64 * N
+
+        pybind11::ssize_t ndim = shape.size();
+        std::vector<pybind11::ssize_t> stride;
+        for (size_t i = 1; i < shape.size(); i++) {
+            stride.push_back(cv_mat.step[i-1]);
+        }
+        stride.push_back(item_size);
+        pybind11::buffer_info output_buf(cv_mat.data, item_size, format,
+                                            ndim, shape, stride);
+        return std::move(pybind11::array_t<uint8_t>(output_buf));
+    }
+    pybind11::array_t<uint8_t> asmat()
+    {
+        cv::Mat o_mat;
+        int ret = cv::bmcv::toMAT((bm_image *) &img_, o_mat, true);
+        if(ret != BM_SUCCESS){
+            SPDLOG_ERROR("cv::bmcv::toMAT Failed: {}",ret);
+            exit(1);
+        }
+        return std::move(cvmat_to_numpy(o_mat));
+    }
+#endif
     protected:
     /// inner bm_image
         void reset(int w, int h);
@@ -1314,6 +1359,12 @@ namespace sail {
     {
         return _impl->reset(w, h);
     }
+
+#ifdef PYTHON
+    pybind11::array_t<uint8_t> BMImage::asmat(){
+        return _impl->asmat();
+    }
+#endif
 
     template<std::size_t N>
     BMImageArray<N>::BMImageArray() : need_to_free_(false) {

@@ -223,6 +223,10 @@ class DECL_EXPORT BMImage {
   bool need_to_free() const;
   int empty_check() const;
   int get_plane_num() const;
+
+#ifdef PYTHON
+  pybind11::array_t<uint8_t> asmat();
+#endif
  protected:
   /// inner bm_image
   void reset(int w, int h);
@@ -518,8 +522,8 @@ class DECL_EXPORT Bmcv {
 
   static int     bm_image_to_mat(BMImage &img, cv::Mat &mat);
   static cv::Mat bm_image_to_mat(BMImage &img);
-#endif
-
+  #endif
+  
   /**
    * @brief Convert BMImage to tensor.
    *

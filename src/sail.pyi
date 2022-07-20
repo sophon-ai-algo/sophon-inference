@@ -137,6 +137,8 @@ class BMImage:
 
     def get_device_id(self) -> int: pass
 
+    def asmat(self) -> numpy.ndarray[numpy.uint8]: pass
+
 
 class Decoder:
     def __init__(self, file_path: str, compressed: bool =  True, 

@@ -308,7 +308,8 @@ PYBIND11_MODULE(sail, m) {
     .def("get_plane_num",        (int (BMImage::*)() const)           &BMImage::get_plane_num)
     .def("need_to_free",         (bool (BMImage::*)() const)          &BMImage::need_to_free)
     .def("empty_check",          (int (BMImage::*)() const)           &BMImage::empty_check)
-    .def("get_device_id",        (int (BMImage::*)() const)           &BMImage::get_device_id);
+    .def("get_device_id",        (int (BMImage::*)() const)           &BMImage::get_device_id)
+    .def("asmat",                &BMImage::asmat);
     
   declareBMImageArray<2>(m); // BMImageArray2D
   declareBMImageArray<3>(m); // BMImageArray3D
