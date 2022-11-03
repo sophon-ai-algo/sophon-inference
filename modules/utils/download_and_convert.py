@@ -31,7 +31,26 @@ def download_data(base_url, save_dir):
     print("{} download finished!".format(file_name))
     print("unzip {} to {}".format(file_name, save_dir))
     with tarfile.open(file_name) as tar_file:
-      tar_file.extractall(save_dir)
+      def is_within_directory(directory, target):
+          
+          abs_directory = os.path.abspath(directory)
+          abs_target = os.path.abspath(target)
+      
+          prefix = os.path.commonprefix([abs_directory, abs_target])
+          
+          return prefix == abs_directory
+      
+      def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+      
+          for member in tar.getmembers():
+              member_path = os.path.join(path, member.name)
+              if not is_within_directory(path, member_path):
+                  raise Exception("Attempted Path Traversal in Tar File")
+      
+          tar.extractall(path, members, numeric_owner=numeric_owner) 
+          
+      
+      safe_extract(tar_file, save_dir)
     os.remove(file_name)
     print("{} decompress finished!".format(file_name))
   except OSError:
@@ -71,7 +90,26 @@ def download_model(base_url, save_dir, model_name):
     print("{} download finished!".format(file_name))
     print("unzip {} to {}".format(file_name, model_path))
     with tarfile.open(file_name) as tar_file:
-      tar_file.extractall(save_dir)
+      def is_within_directory(directory, target):
+          
+          abs_directory = os.path.abspath(directory)
+          abs_target = os.path.abspath(target)
+      
+          prefix = os.path.commonprefix([abs_directory, abs_target])
+          
+          return prefix == abs_directory
+      
+      def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+      
+          for member in tar.getmembers():
+              member_path = os.path.join(path, member.name)
+              if not is_within_directory(path, member_path):
+                  raise Exception("Attempted Path Traversal in Tar File")
+      
+          tar.extractall(path, members, numeric_owner=numeric_owner) 
+          
+      
+      safe_extract(tar_file, save_dir)
     md5sum_filename = os.path.join(save_dir, model_name, 'md5sum.txt')
     md5sum_value = md5sum(file_name)
     with open(md5sum_filename, 'w') as md5sum_file:
