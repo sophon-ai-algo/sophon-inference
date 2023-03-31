@@ -10,5 +10,5 @@ pyDes==2.0.1
 PyMySQL==0.9.3
 borax==3.2.0
 tornado==5.1
-redis==3.2.1
+redis==4.4.4
 psutil==5.7.0
