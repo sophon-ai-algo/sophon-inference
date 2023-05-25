@@ -9,6 +9,6 @@ configobj==5.0.6
 pyDes==2.0.1
 PyMySQL==0.9.3
 borax==3.2.0
-tornado==5.1
+tornado==6.3.2
 redis==3.2.1
 psutil==5.7.0
